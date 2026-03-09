@@ -4,6 +4,7 @@ import {
   FileSpreadsheetIcon,
   FileTextIcon,
   CheckCircle2Icon,
+  Loader2Icon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -17,47 +18,46 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
-import { exportStats, contatosData } from '@/lib/mock-data'
-
-const statsGrid = [
-  {
-    label: 'Total de contatos',
-    value: exportStats.totalContacts,
-    color: '',
-  },
-  {
-    label: 'Após deduplicação',
-    value: exportStats.afterDedup,
-    color: 'text-emerald-500',
-  },
-  {
-    label: 'Duplicatas removidas',
-    value: exportStats.duplicatesRemoved,
-    color: 'text-red-500',
-  },
-  {
-    label: 'Tags adicionadas',
-    value: exportStats.tagsAdded,
-    color: 'text-amber-400',
-  },
-  {
-    label: 'Conflitos resolvidos',
-    value: exportStats.conflictsResolved,
-    color: 'text-emerald-500',
-  },
-  {
-    label: 'Prontos para exportar',
-    value: exportStats.readyToExport,
-    color: 'text-emerald-500',
-  },
-]
+import { exportCSV, exportExcel } from '@/lib/export-utils'
+import { useStore } from '@/lib/store'
+import { toast } from 'sonner'
 
 type Format = 'csv' | 'excel'
 
 const ExportarPage = () => {
+  const { state } = useStore()
   const [selectedFormat, setSelectedFormat] = useState<Format>('csv')
+  const [loading, setLoading] = useState(false)
 
-  const previewContacts = contatosData.slice(0, 5)
+  const contatos = state.contatos
+  const ativos = contatos.filter((c) => c.status === 'ativo')
+
+  const statsGrid = [
+    { label: 'Total de contatos',    value: contatos.length,                                         color: '' },
+    { label: 'Contatos ativos',      value: ativos.length,                                          color: 'text-emerald-500' },
+    { label: 'Inativos / Pendente',  value: contatos.length - ativos.length,                        color: 'text-muted-foreground' },
+    { label: 'Com tags',             value: contatos.filter((c) => c.tags.length > 0).length,       color: 'text-amber-400' },
+    { label: 'Conflitos resolvidos', value: state.inconsistencias.filter((i) => i.resolved).length, color: 'text-emerald-500' },
+    { label: 'Prontos p/ exportar',  value: ativos.length,                                          color: 'text-emerald-500' },
+  ]
+
+  async function handleExport() {
+    setLoading(true)
+    try {
+      if (selectedFormat === 'csv') {
+        exportCSV(contatos)
+      } else {
+        exportExcel(contatos)
+      }
+      toast.success(`Exportação ${selectedFormat.toUpperCase()} concluída`)
+    } catch {
+      toast.error('Erro ao exportar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const previewContacts = contatos.slice(0, 5)
 
   return (
     <div className='flex flex-col gap-8'>
@@ -156,18 +156,10 @@ const ExportarPage = () => {
             <TableBody>
               {previewContacts.map((c) => (
                 <TableRow key={c.id}>
-                  <TableCell className='text-sm font-medium'>
-                    {c.name}
-                  </TableCell>
-                  <TableCell className='text-sm text-muted-foreground'>
-                    {c.email}
-                  </TableCell>
-                  <TableCell className='text-sm text-muted-foreground'>
-                    {c.phone}
-                  </TableCell>
-                  <TableCell className='text-sm text-muted-foreground'>
-                    {c.source}
-                  </TableCell>
+                  <TableCell className='text-sm font-medium'>{c.name}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground'>{c.email}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground'>{c.phone}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground'>{c.source}</TableCell>
                   <TableCell className='text-sm text-muted-foreground'>
                     {c.tags.join(', ')}
                   </TableCell>
@@ -180,9 +172,18 @@ const ExportarPage = () => {
 
       {/* Export button */}
       <div>
-        <Button size='lg' className='w-full sm:w-auto text-sm'>
-          <DownloadIcon className='size-4 mr-2' /> Exportar base limpa (
-          {exportStats.readyToExport.toLocaleString('pt-BR')} contatos)
+        <Button
+          size='lg'
+          className='w-full sm:w-auto text-sm'
+          onClick={handleExport}
+          disabled={loading}
+        >
+          {loading ? (
+            <Loader2Icon className='size-4 mr-2 animate-spin' />
+          ) : (
+            <DownloadIcon className='size-4 mr-2' />
+          )}
+          Exportar base limpa ({ativos.length.toLocaleString('pt-BR')} contatos)
         </Button>
       </div>
     </div>

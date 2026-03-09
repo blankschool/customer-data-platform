@@ -1,22 +1,68 @@
 import { useState } from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import TransactionDatatable from '@/components/shadcn-studio/blocks/datatable-transaction'
-import { inconsistenciasData, healthMetrics, filterPills } from '@/lib/mock-data'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { MoreHorizontalIcon, XIcon } from 'lucide-react'
+import { healthMetrics } from '@/lib/mock-data'
+import { useStore } from '@/lib/store'
+import { toast } from 'sonner'
+import type { TipoInconsistencia } from '@/lib/mock-data'
+
+function tipoBadgeClass(tipo: TipoInconsistencia) {
+  switch (tipo) {
+    case 'Duplicata':    return 'badge-error'
+    case 'Tag ausente':  return 'badge-warning'
+    case 'Inadimplente': return 'badge-info'
+    case 'Órfão':        return 'bg-muted text-muted-foreground border-border'
+  }
+}
+
+function filterMatch(tipo: TipoInconsistencia, filterId: string) {
+  if (filterId === 'duplicata')    return tipo === 'Duplicata'
+  if (filterId === 'tag')          return tipo === 'Tag ausente'
+  if (filterId === 'inadimplente') return tipo === 'Inadimplente'
+  if (filterId === 'orfao')        return tipo === 'Órfão'
+  return true
+}
 
 const InconsistenciasPage = () => {
+  const { state, dispatch } = useStore()
   const [activeFilter, setActiveFilter] = useState('all')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  const filteredData =
-    activeFilter === 'all'
-      ? inconsistenciasData
-      : inconsistenciasData.filter((item) => {
-          if (activeFilter === 'duplicata') return item.status === 'failed'
-          if (activeFilter === 'tag') return item.status === 'processing'
-          if (activeFilter === 'inadimplente') return item.status === 'pending'
-          return false
-        })
+  const pending = state.inconsistencias.filter((i) => !i.resolved)
+  const filtered = pending.filter((i) => filterMatch(i.tipo, activeFilter))
+  const selected = selectedId ? state.inconsistencias.find((i) => i.id === selectedId) : null
+
+  const pills = [
+    { id: 'all',          label: 'Todos',        count: pending.length },
+    { id: 'duplicata',    label: 'Duplicatas',   count: pending.filter(i => i.tipo === 'Duplicata').length },
+    { id: 'tag',          label: 'Tag ausente',  count: pending.filter(i => i.tipo === 'Tag ausente').length },
+    { id: 'inadimplente', label: 'Inadimplente', count: pending.filter(i => i.tipo === 'Inadimplente').length },
+    { id: 'orfao',        label: 'Órfão',        count: pending.filter(i => i.tipo === 'Órfão').length },
+  ]
+
+  const handleResolve = (id: string, choice: 'vendas' | 'email') => {
+    dispatch({ type: 'INCONSISTENCIA_RESOLVE', payload: { id, choice } })
+    toast.success('Inconsistência resolvida')
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  const handleMarkOrphan = (id: string) => {
+    dispatch({ type: 'INCONSISTENCIA_MARK_ORPHAN', payload: id })
+    toast.info('Marcado como órfão')
+  }
+
+  const handleAddTag = (id: string, tag: string) => {
+    dispatch({ type: 'INCONSISTENCIA_ADD_TAG', payload: { id, tag } })
+    toast.success(`Tag "${tag}" adicionada`)
+  }
 
   return (
     <div className='flex flex-1 -mx-10 -my-10 overflow-hidden'>
@@ -29,7 +75,6 @@ const InconsistenciasPage = () => {
             <span className='text-xs text-muted-foreground font-light'>Baseado nas 2 bases carregadas</span>
           </div>
 
-          {/* Progress bar */}
           <div className='mb-4'>
             <div className='h-0.5 bg-border rounded-full overflow-hidden mb-1.5'>
               <div className='h-full bg-foreground/60 rounded-full w-[65%]' />
@@ -40,7 +85,6 @@ const InconsistenciasPage = () => {
             </div>
           </div>
 
-          {/* 4-column health grid */}
           <div className='grid grid-cols-2 sm:grid-cols-4 gap-px bg-border rounded-lg overflow-hidden border border-border'>
             {healthMetrics.map((m, i) => (
               <div key={i} className='bg-card px-5 py-6 flex flex-col gap-1.5'>
@@ -60,9 +104,8 @@ const InconsistenciasPage = () => {
         <section>
           <h2 className='font-serif text-[22px] font-normal tracking-tight mb-4'>Inconsistências</h2>
 
-          {/* Filter pills */}
           <div className='flex items-center gap-2 mb-4 flex-wrap'>
-            {filterPills.map((pill) => (
+            {pills.map((pill) => (
               <button
                 key={pill.id}
                 onClick={() => setActiveFilter(pill.id)}
@@ -72,90 +115,210 @@ const InconsistenciasPage = () => {
                     : 'border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground'
                 }`}
               >
-                {pill.label}{' '}
-                <span className='opacity-40 ml-0.5'>{pill.count}</span>
+                {pill.label} <span className='opacity-40 ml-0.5'>{pill.count}</span>
               </button>
             ))}
             <span className='ml-auto text-[11px] text-muted-foreground font-light'>
-              Mostrando {Math.min(5, filteredData.length)} de {filteredData.length}
+              Mostrando {filtered.length} de {pending.length}
             </span>
           </div>
 
-          <Card className='py-0'>
-            <TransactionDatatable data={filteredData} />
-          </Card>
+          <div className='rounded-lg border border-border overflow-hidden'>
+            <table className='w-full text-sm'>
+              <thead>
+                <tr className='border-b border-border bg-muted/30'>
+                  {['Contato', 'Ocorr.', 'Tipo', 'Fonte', 'Ações'].map((h) => (
+                    <th
+                      key={h}
+                      className='text-left text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-normal px-4 py-3'
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() => setSelectedId(row.id === selectedId ? null : row.id)}
+                    className={`border-b border-border last:border-0 cursor-pointer transition-colors ${
+                      selectedId === row.id ? 'bg-muted/40' : 'hover:bg-muted/20'
+                    }`}
+                  >
+                    <td className='px-4 py-3.5'>
+                      <div className='flex items-center gap-3'>
+                        <Avatar className='size-7 rounded-full flex-shrink-0'>
+                          <AvatarImage src={row.avatar} />
+                          <AvatarFallback className='text-[10px]'>{row.avatarFallback}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className='text-xs font-medium leading-none mb-0.5'>{row.name}</p>
+                          <p className='text-[10px] text-muted-foreground font-light'>{row.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className='px-4 py-3.5 text-xs text-muted-foreground'>{row.ocorrencias}×</td>
+                    <td className='px-4 py-3.5'>
+                      <span className={`text-[10px] px-2 py-0.5 rounded border ${tipoBadgeClass(row.tipo)}`}>
+                        {row.tipo}
+                      </span>
+                    </td>
+                    <td className='px-4 py-3.5'>
+                      <span className='text-[10px] px-2 py-0.5 rounded border border-border bg-muted text-muted-foreground'>
+                        {row.fonte}
+                      </span>
+                    </td>
+                    <td className='px-4 py-3.5'>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className='text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted'
+                          >
+                            <MoreHorizontalIcon className='size-3.5' />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end' onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => handleResolve(row.id, 'vendas')}>
+                            Resolver (Vendas)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleResolve(row.id, 'email')}>
+                            Resolver (E-mail)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleMarkOrphan(row.id)}>
+                            Marcar órfão
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className='text-center py-8 text-sm text-muted-foreground'>
+                      Nenhuma inconsistência encontrada
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </section>
       </div>
 
       {/* ── Detail aside panel ───────────────────────────────── */}
-      <aside className='w-72 border-l border-border flex-shrink-0 overflow-y-auto hidden xl:flex flex-col bg-card'>
-        {/* Contact header */}
-        <div className='px-6 py-6 border-b border-border'>
-          <h3 className='font-serif text-base font-normal tracking-tight mb-1'>Ana Paula Ribeiro</h3>
-          <p className='text-[11px] text-muted-foreground font-light'>ana.ribeiro@email.com</p>
-        </div>
-
-        {/* Informações */}
-        <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
-          <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Informações</span>
-          {[
-            { key: 'Telefone', val: 'Conflito', valClass: 'text-[hsl(var(--error))]' },
-            { key: 'Fontes', val: 'Vendas, E-mail', valClass: '' },
-            { key: 'Primeira compra', val: 'Jan 2024', valClass: '' },
-            { key: 'Tags atuais', val: 'lead, newsletter', valClass: '' },
-          ].map((row) => (
-            <div key={row.key} className='flex justify-between items-center'>
-              <span className='text-[11px] text-muted-foreground font-light'>{row.key}</span>
-              <span className={`text-xs font-medium ${row.valClass}`}>{row.val}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Conflito detectado */}
-        <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
-          <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Conflito detectado</span>
-          <div className='rounded-md border conflict-error p-3 flex flex-col gap-2.5'>
-            <span className='text-[9px] uppercase tracking-[0.1em] text-error font-medium'>Telefone divergente</span>
-            <div className='flex justify-between items-center'>
-              <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded'>Vendas</span>
-              <span className='text-xs'>(11) 99872-3410</span>
-            </div>
-            <div className='flex justify-between items-center'>
-              <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded'>E-mail</span>
-              <span className='text-xs'>(11) 98341-7720</span>
-            </div>
-            <div className='flex gap-1.5 mt-0.5'>
-              <Button size='sm' className='flex-1 h-7 text-[10px]'>
-                Usar Vendas
-              </Button>
-              <Button size='sm' variant='outline' className='flex-1 h-7 text-[10px]'>
-                Usar E-mail
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Tags sugeridas */}
-        <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
-          <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Tags sugeridas</span>
-          <div className='flex flex-wrap gap-1.5'>
-            {['+ cliente-ativo', '+ comprou-2024', '+ social-media'].map((tag) => (
-              <span
-                key={tag}
-                className='text-[10px] px-2.5 py-1 rounded border border-border text-muted-foreground bg-muted hover:border-muted-foreground/50 hover:text-foreground cursor-pointer transition-all'
+      <aside className='w-[272px] border-l border-border flex-shrink-0 overflow-y-auto hidden xl:flex flex-col bg-card'>
+        {selected ? (
+          <>
+            <div className='px-6 py-5 border-b border-border flex items-start justify-between gap-2'>
+              <div className='min-w-0'>
+                <h3 className='font-serif text-base font-normal tracking-tight mb-0.5 truncate'>
+                  {selected.name}
+                </h3>
+                <p className='text-[11px] text-muted-foreground font-light truncate'>{selected.email}</p>
+              </div>
+              <button
+                onClick={() => setSelectedId(null)}
+                className='text-muted-foreground hover:text-foreground transition-colors mt-0.5 flex-shrink-0'
               >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
+                <XIcon className='size-3.5' />
+              </button>
+            </div>
 
-        {/* Save */}
-        <div className='px-6 py-5'>
-          <Button className='w-full text-xs' size='sm'>
-            Salvar alterações
-          </Button>
-        </div>
+            <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
+              <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Informações</span>
+              {[
+                { key: 'Telefone',        val: selected.conflict ? 'Conflito detectado' : selected.phone },
+                { key: 'Fontes',          val: selected.sources.join(', ') },
+                { key: 'Primeira compra', val: selected.firstPurchase },
+                { key: 'Tags atuais',     val: selected.currentTags.join(', ') || '—' },
+              ].map((row) => (
+                <div key={row.key} className='flex justify-between items-center gap-3'>
+                  <span className='text-[11px] text-muted-foreground font-light shrink-0'>{row.key}</span>
+                  <span className='text-xs font-medium text-right'>{row.val}</span>
+                </div>
+              ))}
+            </div>
+
+            {selected.conflict && (
+              <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
+                <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Conflito detectado</span>
+                <div className='rounded-md border conflict-error p-3 flex flex-col gap-2.5'>
+                  <span className='text-[9px] uppercase tracking-[0.1em] text-error font-medium'>
+                    {selected.conflict.label}
+                  </span>
+                  <div className='flex justify-between items-center gap-2'>
+                    <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
+                      Vendas
+                    </span>
+                    <span className='text-xs text-right'>{selected.conflict.vendas}</span>
+                  </div>
+                  <div className='flex justify-between items-center gap-2'>
+                    <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
+                      E-mail
+                    </span>
+                    <span className='text-xs text-right'>{selected.conflict.email}</span>
+                  </div>
+                  <div className='flex gap-1.5 mt-0.5'>
+                    <Button
+                      size='sm'
+                      className='flex-1 h-7 text-[10px]'
+                      onClick={() => handleResolve(selected.id, 'vendas')}
+                    >
+                      Usar Vendas
+                    </Button>
+                    <Button
+                      size='sm'
+                      variant='outline'
+                      className='flex-1 h-7 text-[10px]'
+                      onClick={() => handleResolve(selected.id, 'email')}
+                    >
+                      Usar E-mail
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selected.suggestedTags.length > 0 && (
+              <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
+                <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>
+                  Tags sugeridas
+                </span>
+                <div className='flex flex-wrap gap-1.5'>
+                  {selected.suggestedTags
+                    .filter((tag) => !selected.currentTags.includes(tag))
+                    .map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => handleAddTag(selected.id, tag)}
+                        className='text-[10px] px-2.5 py-1 rounded border border-border text-muted-foreground bg-muted hover:border-muted-foreground/50 hover:text-foreground cursor-pointer transition-all'
+                      >
+                        + {tag}
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            <div className='px-6 py-5 mt-auto'>
+              <Button
+                className='w-full text-xs'
+                size='sm'
+                onClick={() => toast.success('Alterações salvas')}
+              >
+                Salvar alterações
+              </Button>
+            </div>
+          </>
+        ) : (
+          <div className='flex-1 flex items-center justify-center'>
+            <p className='text-[11px] text-muted-foreground/40 text-center px-8 leading-relaxed'>
+              Selecione um contato na tabela para revisar e resolver conflitos
+            </p>
+          </div>
+        )}
       </aside>
     </div>
   )

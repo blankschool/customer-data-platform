@@ -2,68 +2,25 @@ import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { FileIcon, PlusIcon, MoreHorizontalIcon, XIcon } from 'lucide-react'
-import { healthMetrics, filterPills } from '@/lib/mock-data'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-type TipoInconsistencia = 'Duplicata' | 'Tag ausente' | 'Inadimplente' | 'Órfão'
-
-type InconsistenciaRow = {
-  id: string
-  avatar: string
-  avatarFallback: string
-  name: string
-  email: string
-  ocorr: number
-  tipo: TipoInconsistencia
-  fonte: string
-}
-
-type ContactDetail = {
-  phone: string
-  sources: string[]
-  firstPurchase: string
-  tags: string[]
-  conflict?: { label: string; vendas: string; email: string }
-  suggestedTags: string[]
-}
-
-// ── Static data ───────────────────────────────────────────────────────────────
-
-const basesCarregadas = [
-  { id: '1', label: 'BASE DE VENDAS',  fileName: 'clientes_vendas_mar25.csv',      info: '2.847 contatos · 12 colunas', loaded: true  },
-  { id: '2', label: 'BASE DE E-MAIL',  fileName: 'mailchimp_export_032025.xlsx',   info: '3.102 contatos · 9 colunas',  loaded: true  },
-  { id: '3', label: 'CRM WHATSAPP',    fileName: null,                              info: null,                          loaded: false },
-]
-
-const tableRows: InconsistenciaRow[] = [
-  { id: '1',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-1.png',  avatarFallback: 'AP', name: 'Ana Paula Ribeiro',  email: 'ana.ribeiro@email.com',       ocorr: 2, tipo: 'Duplicata',   fonte: 'Vendas'  },
-  { id: '2',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-2.png',  avatarFallback: 'CM', name: 'Carlos Menezes',     email: 'c.menezes@outlook.com',       ocorr: 1, tipo: 'Tag ausente', fonte: 'Vendas'  },
-  { id: '3',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-3.png',  avatarFallback: 'FC', name: 'Fernanda Costa',     email: 'fercosta@gmail.com',          ocorr: 1, tipo: 'Tag ausente', fonte: 'Vendas'  },
-  { id: '4',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-4.png',  avatarFallback: 'RA', name: 'Roberto Alves',      email: 'roberto.alv@empresa.com.br',  ocorr: 1, tipo: 'Inadimplente',fonte: 'E-mail' },
-  { id: '5',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-5.png',  avatarFallback: 'JM', name: 'Juliana Martins',    email: 'ju.martins@hotmail.com',      ocorr: 1, tipo: 'Duplicata',   fonte: 'Vendas'  },
-  { id: '6',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-6.png',  avatarFallback: 'MO', name: 'Marcos Oliveira',    email: 'm.oliveira@uol.com.br',       ocorr: 1, tipo: 'Tag ausente', fonte: 'Vendas'  },
-  { id: '7',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-7.png',  avatarFallback: 'PS', name: 'Patricia Souza',     email: 'p.souza@gmail.com',           ocorr: 2, tipo: 'Duplicata',   fonte: 'Vendas'  },
-  { id: '8',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-8.png',  avatarFallback: 'TL', name: 'Thiago Lima',        email: 'thiago.lima@empresa.com',     ocorr: 1, tipo: 'Tag ausente', fonte: 'E-mail'  },
-  { id: '9',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-9.png',  avatarFallback: 'BN', name: 'Beatriz Nascimento', email: 'bea.nas@hotmail.com',         ocorr: 1, tipo: 'Órfão',       fonte: 'Vendas'  },
-  { id: '10', avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-10.png', avatarFallback: 'RF', name: 'Rafael Ferreira',    email: 'rafael.f@outlook.com',        ocorr: 1, tipo: 'Tag ausente', fonte: 'E-mail'  },
-]
-
-const contactDetails: Record<string, ContactDetail> = {
-  '1':  { phone: '(11) 99872-3410', sources: ['Vendas', 'E-mail'], firstPurchase: 'Jan 2024', tags: ['lead', 'newsletter'],    conflict: { label: 'TELEFONE DIVERGENTE', vendas: '(11) 99872-3410', email: '(11) 98341-7720'           }, suggestedTags: ['cliente-ativo', 'comprou-2024', 'social-media'] },
-  '2':  { phone: '(21) 98765-4321', sources: ['Vendas'],           firstPurchase: 'Mar 2024', tags: ['lead'],                  suggestedTags: ['cliente-ativo', 'comprou-2024']                                                              },
-  '3':  { phone: '(31) 99654-1234', sources: ['Vendas'],           firstPurchase: 'Jun 2024', tags: ['cliente-ativo'],         suggestedTags: ['comprou-2024', 'newsletter']                                                                  },
-  '4':  { phone: '(11) 97654-8765', sources: ['E-mail'],           firstPurchase: 'Nov 2023', tags: ['newsletter'],            conflict: { label: 'EMAIL DUPLICADO',      vendas: 'roberto@empresa.com', email: 'r.alves@empresa.com.br'  }, suggestedTags: ['inadimplente']                                  },
-  '5':  { phone: '(41) 99876-5432', sources: ['Vendas', 'E-mail'], firstPurchase: 'Feb 2024', tags: ['cliente-ativo', 'vip'], conflict: { label: 'TELEFONE DIVERGENTE', vendas: '(41) 99876-5432',   email: '(41) 97654-3210'           }, suggestedTags: ['newsletter']                                    },
-  '6':  { phone: '(51) 98432-1098', sources: ['Vendas'],           firstPurchase: 'Aug 2024', tags: ['lead'],                  suggestedTags: ['social-media', 'newsletter']                                                                  },
-  '7':  { phone: '(11) 99321-6543', sources: ['Vendas'],           firstPurchase: 'Dec 2023', tags: ['cliente-ativo'],         conflict: { label: 'NOME DIVERGENTE',      vendas: 'Patricia Souza',      email: 'Patrícia de Souza Lima' }, suggestedTags: ['vip', 'comprou-2024']                           },
-  '8':  { phone: '(21) 98543-2109', sources: ['E-mail'],           firstPurchase: 'Apr 2024', tags: ['b2b', 'newsletter'],     suggestedTags: ['cliente-ativo']                                                                               },
-  '9':  { phone: '(31) 99765-4321', sources: ['Vendas'],           firstPurchase: 'Jan 2024', tags: ['inadimplente'],          suggestedTags: ['churn-risk']                                                                                   },
-  '10': { phone: '(11) 98654-3210', sources: ['Vendas', 'E-mail'], firstPurchase: 'May 2024', tags: ['cliente-ativo'],         suggestedTags: ['comprou-2024', 'vip']                                                                         },
-}
+import { healthMetrics } from '@/lib/mock-data'
+import { useStore } from '@/lib/store'
+import { toast } from 'sonner'
+import type { TipoInconsistencia } from '@/lib/mock-data'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const basesCarregadas = [
+  { id: '1', label: 'BASE DE VENDAS', fileName: 'clientes_vendas_mar25.csv',    info: '2.847 contatos · 12 colunas', loaded: true  },
+  { id: '2', label: 'BASE DE E-MAIL', fileName: 'mailchimp_export_032025.xlsx', info: '3.102 contatos · 9 colunas',  loaded: true  },
+  { id: '3', label: 'CRM WHATSAPP',   fileName: null,                           info: null,                          loaded: false },
+]
 
 function tipoBadgeClass(tipo: TipoInconsistencia) {
   switch (tipo) {
@@ -85,12 +42,39 @@ function filterMatch(tipo: TipoInconsistencia, filterId: string) {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 const DashboardPage = () => {
+  const { state, dispatch } = useStore()
   const [activeFilter, setActiveFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>('1')
 
-  const filteredRows = tableRows.filter((r) => filterMatch(r.tipo, activeFilter))
-  const selected = selectedId ? tableRows.find((r) => r.id === selectedId) : null
-  const detail   = selectedId ? contactDetails[selectedId] : null
+  const pending = state.inconsistencias.filter((i) => !i.resolved)
+  const filtered = pending.filter((i) => filterMatch(i.tipo, activeFilter))
+  const selected = selectedId ? state.inconsistencias.find((i) => i.id === selectedId) : null
+
+  // Dynamic filter pill counts
+  const pills = [
+    { id: 'all',          label: 'Todos',        count: pending.length },
+    { id: 'duplicata',    label: 'Duplicatas',   count: pending.filter(i => i.tipo === 'Duplicata').length },
+    { id: 'tag',          label: 'Tag ausente',  count: pending.filter(i => i.tipo === 'Tag ausente').length },
+    { id: 'inadimplente', label: 'Inadimplente', count: pending.filter(i => i.tipo === 'Inadimplente').length },
+    { id: 'orfao',        label: 'Órfão',        count: pending.filter(i => i.tipo === 'Órfão').length },
+  ]
+
+  const handleResolve = (id: string, choice: 'vendas' | 'email') => {
+    dispatch({ type: 'INCONSISTENCIA_RESOLVE', payload: { id, choice } })
+    toast.success('Inconsistência resolvida')
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  const handleMarkOrphan = (id: string) => {
+    dispatch({ type: 'INCONSISTENCIA_MARK_ORPHAN', payload: id })
+    toast.info('Marcado como órfão')
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  const handleAddTag = (id: string, tag: string) => {
+    dispatch({ type: 'INCONSISTENCIA_ADD_TAG', payload: { id, tag } })
+    toast.success(`Tag "${tag}" adicionada`)
+  }
 
   return (
     <div className='flex flex-1 -mx-10 -my-10 overflow-hidden'>
@@ -98,7 +82,7 @@ const DashboardPage = () => {
       {/* ── Main scrollable area ──────────────────────────────────────────── */}
       <div className='flex-1 overflow-y-auto px-10 py-10 flex flex-col gap-10'>
 
-        {/* Bases carregadas ─────────────────────────────────────────────── */}
+        {/* Bases carregadas */}
         <section>
           <div className='flex items-baseline gap-3 mb-5'>
             <h2 className='font-serif text-[22px] font-normal tracking-tight'>Bases carregadas</h2>
@@ -111,9 +95,7 @@ const DashboardPage = () => {
                 key={base.id}
                 className='relative rounded-xl border border-border bg-card px-5 py-5 flex flex-col gap-3 hover:bg-card/60 transition-all cursor-pointer'
               >
-                {base.loaded && (
-                  <span className='absolute top-3.5 right-3.5 size-1.5 rounded-full bg-emerald-500' />
-                )}
+                {base.loaded && <span className='absolute top-3.5 right-3.5 size-1.5 rounded-full bg-emerald-500' />}
                 <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>{base.label}</span>
                 {base.loaded ? (
                   <>
@@ -141,7 +123,7 @@ const DashboardPage = () => {
 
         <Separator />
 
-        {/* Saúde da base ────────────────────────────────────────────────── */}
+        {/* Saúde da base */}
         <section>
           <div className='flex items-baseline gap-3 mb-4'>
             <h2 className='font-serif text-[22px] font-normal tracking-tight'>Saúde da base</h2>
@@ -173,13 +155,13 @@ const DashboardPage = () => {
 
         <Separator />
 
-        {/* Inconsistências ──────────────────────────────────────────────── */}
+        {/* Inconsistências */}
         <section className='pb-10'>
           <h2 className='font-serif text-[22px] font-normal tracking-tight mb-4'>Inconsistências</h2>
 
           {/* Filter pills */}
           <div className='flex items-center gap-2 mb-4 flex-wrap'>
-            {filterPills.map((pill) => (
+            {pills.map((pill) => (
               <button
                 key={pill.id}
                 onClick={() => setActiveFilter(pill.id)}
@@ -193,7 +175,7 @@ const DashboardPage = () => {
               </button>
             ))}
             <span className='ml-auto text-[11px] text-muted-foreground font-light'>
-              Mostrando {filteredRows.length} de {tableRows.length}
+              Mostrando {filtered.length} de {pending.length}
             </span>
           </div>
 
@@ -203,17 +185,14 @@ const DashboardPage = () => {
               <thead>
                 <tr className='border-b border-border bg-muted/30'>
                   {['Contato', 'Ocorr.', 'Tipo', 'Fonte', 'Ações'].map((h) => (
-                    <th
-                      key={h}
-                      className='text-left text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-normal px-4 py-3'
-                    >
+                    <th key={h} className='text-left text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-normal px-4 py-3'>
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => (
+                {filtered.map((row) => (
                   <tr
                     key={row.id}
                     onClick={() => setSelectedId(row.id === selectedId ? null : row.id)}
@@ -221,7 +200,6 @@ const DashboardPage = () => {
                       selectedId === row.id ? 'bg-muted/40' : 'hover:bg-muted/20'
                     }`}
                   >
-                    {/* Contato */}
                     <td className='px-4 py-3.5'>
                       <div className='flex items-center gap-3'>
                         <Avatar className='size-7 rounded-full flex-shrink-0'>
@@ -234,31 +212,49 @@ const DashboardPage = () => {
                         </div>
                       </div>
                     </td>
-                    {/* Ocorr. */}
-                    <td className='px-4 py-3.5 text-xs text-muted-foreground'>{row.ocorr}×</td>
-                    {/* Tipo */}
+                    <td className='px-4 py-3.5 text-xs text-muted-foreground'>{row.ocorrencias}×</td>
                     <td className='px-4 py-3.5'>
                       <span className={`text-[10px] px-2 py-0.5 rounded border ${tipoBadgeClass(row.tipo)}`}>
                         {row.tipo}
                       </span>
                     </td>
-                    {/* Fonte */}
                     <td className='px-4 py-3.5'>
                       <span className='text-[10px] px-2 py-0.5 rounded border border-border bg-muted text-muted-foreground'>
                         {row.fonte}
                       </span>
                     </td>
-                    {/* Ações */}
                     <td className='px-4 py-3.5'>
-                      <button
-                        onClick={(e) => e.stopPropagation()}
-                        className='text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted'
-                      >
-                        <MoreHorizontalIcon className='size-3.5' />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => e.stopPropagation()}
+                            className='text-muted-foreground hover:text-foreground transition-colors p-1 rounded hover:bg-muted'
+                          >
+                            <MoreHorizontalIcon className='size-3.5' />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end' onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenuItem onClick={() => handleResolve(row.id, 'vendas')}>
+                            Resolver (Vendas)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleResolve(row.id, 'email')}>
+                            Resolver (E-mail)
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleMarkOrphan(row.id)}>
+                            Marcar órfão
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className='text-center py-8 text-sm text-muted-foreground'>
+                      Nenhuma inconsistência encontrada
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -267,7 +263,7 @@ const DashboardPage = () => {
 
       {/* ── Right aside panel ─────────────────────────────────────────────── */}
       <aside className='w-[272px] border-l border-border flex-shrink-0 overflow-y-auto hidden xl:flex flex-col bg-card'>
-        {selected && detail ? (
+        {selected ? (
           <>
             {/* Header */}
             <div className='px-6 py-5 border-b border-border flex items-start justify-between gap-2'>
@@ -287,62 +283,75 @@ const DashboardPage = () => {
             <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
               <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Informações</span>
               {[
-                { key: 'Telefone',        val: detail.conflict ? 'Conflito' : detail.phone, cls: detail.conflict ? 'text-error' : '' },
-                { key: 'Fontes',          val: detail.sources.join(', '),                    cls: '' },
-                { key: 'Primeira compra', val: detail.firstPurchase,                         cls: '' },
-                { key: 'Tags atuais',     val: detail.tags.join(', '),                       cls: '' },
+                { key: 'Telefone',        val: selected.conflict ? 'Conflito detectado' : selected.phone },
+                { key: 'Fontes',          val: selected.sources.join(', ') },
+                { key: 'Primeira compra', val: selected.firstPurchase },
+                { key: 'Tags atuais',     val: selected.currentTags.join(', ') || '—' },
               ].map((row) => (
                 <div key={row.key} className='flex justify-between items-center gap-3'>
                   <span className='text-[11px] text-muted-foreground font-light shrink-0'>{row.key}</span>
-                  <span className={`text-xs font-medium text-right ${row.cls}`}>{row.val}</span>
+                  <span className='text-xs font-medium text-right'>{row.val}</span>
                 </div>
               ))}
             </div>
 
             {/* Conflito detectado */}
-            {detail.conflict && (
+            {selected.conflict && (
               <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
                 <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Conflito detectado</span>
                 <div className='rounded-md border conflict-error p-3 flex flex-col gap-2.5'>
                   <span className='text-[9px] uppercase tracking-[0.1em] text-error font-medium'>
-                    {detail.conflict.label}
+                    {selected.conflict.label}
                   </span>
                   <div className='flex justify-between items-center gap-2'>
                     <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>Vendas</span>
-                    <span className='text-xs text-right'>{detail.conflict.vendas}</span>
+                    <span className='text-xs text-right'>{selected.conflict.vendas}</span>
                   </div>
                   <div className='flex justify-between items-center gap-2'>
                     <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>E-mail</span>
-                    <span className='text-xs text-right'>{detail.conflict.email}</span>
+                    <span className='text-xs text-right'>{selected.conflict.email}</span>
                   </div>
                   <div className='flex gap-1.5 mt-0.5'>
-                    <Button size='sm' className='flex-1 h-7 text-[10px]'>Usar Vendas</Button>
-                    <Button size='sm' variant='outline' className='flex-1 h-7 text-[10px]'>Usar E-mail</Button>
+                    <Button size='sm' className='flex-1 h-7 text-[10px]' onClick={() => handleResolve(selected.id, 'vendas')}>
+                      Usar Vendas
+                    </Button>
+                    <Button size='sm' variant='outline' className='flex-1 h-7 text-[10px]' onClick={() => handleResolve(selected.id, 'email')}>
+                      Usar E-mail
+                    </Button>
                   </div>
                 </div>
               </div>
             )}
 
             {/* Tags sugeridas */}
-            {detail.suggestedTags.length > 0 && (
+            {selected.suggestedTags.length > 0 && (
               <div className='px-6 py-5 border-b border-border flex flex-col gap-3'>
                 <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Tags sugeridas</span>
                 <div className='flex flex-wrap gap-1.5'>
-                  {detail.suggestedTags.map((tag) => (
-                    <span
-                      key={tag}
-                      className='text-[10px] px-2.5 py-1 rounded border border-border text-muted-foreground bg-muted hover:border-muted-foreground/50 hover:text-foreground cursor-pointer transition-all'
-                    >
-                      + {tag}
-                    </span>
-                  ))}
+                  {selected.suggestedTags
+                    .filter(tag => !selected.currentTags.includes(tag))
+                    .map((tag) => (
+                      <button
+                        key={tag}
+                        onClick={() => handleAddTag(selected.id, tag)}
+                        className='text-[10px] px-2.5 py-1 rounded border border-border text-muted-foreground bg-muted hover:border-muted-foreground/50 hover:text-foreground cursor-pointer transition-all'
+                      >
+                        + {tag}
+                      </button>
+                    ))}
                 </div>
               </div>
             )}
 
             {/* Save */}
             <div className='px-6 py-5 mt-auto'>
-              <Button className='w-full text-xs' size='sm'>Salvar alterações</Button>
+              <Button
+                className='w-full text-xs'
+                size='sm'
+                onClick={() => toast.success('Alterações salvas')}
+              >
+                Salvar alterações
+              </Button>
             </div>
           </>
         ) : (

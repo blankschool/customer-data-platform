@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { MoreHorizontalIcon, PlusIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Table,
   TableBody,
   TableCell,
@@ -16,7 +27,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { usuariosData } from '@/lib/mock-data'
+import { UserFormDialog } from '@/components/user-form-dialog'
+import { useStore } from '@/lib/store'
+import { toast } from 'sonner'
+import type { Usuario } from '@/lib/mock-data'
 
 function formatLastAccess(isoDate: string): string {
   const date = new Date(isoDate)
@@ -34,10 +48,7 @@ function formatLastAccess(isoDate: string): string {
     date.getMonth() === yesterday.getMonth() &&
     date.getFullYear() === yesterday.getFullYear()
 
-  const time = date.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
 
   if (isToday) return `Hoje, ${time}`
   if (isYesterday) return `Ontem, ${time}`
@@ -45,19 +56,66 @@ function formatLastAccess(isoDate: string): string {
 }
 
 const UsuariosPage = () => {
+  const { state, dispatch } = useStore()
+
+  const [formOpen, setFormOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<Usuario | undefined>(undefined)
+  const [removeId, setRemoveId] = useState<string | null>(null)
+
+  function handleInvite() {
+    setEditTarget(undefined)
+    setFormOpen(true)
+  }
+
+  function handleEdit(user: Usuario) {
+    setEditTarget(user)
+    setFormOpen(true)
+  }
+
+  function handleSave(data: Partial<Usuario>) {
+    if (editTarget) {
+      dispatch({ type: 'USUARIO_UPDATE', payload: { id: editTarget.id, data } })
+      toast.success('Usuário atualizado')
+    } else {
+      const newUser: Usuario = {
+        id: String(Date.now()),
+        avatar: '',
+        avatarFallback: (data.name ?? 'N').slice(0, 2).toUpperCase(),
+        name: data.name ?? '',
+        email: data.email ?? '',
+        role: data.role ?? 'Viewer',
+        status: 'ativo',
+        lastAccess: new Date().toISOString(),
+      }
+      dispatch({ type: 'USUARIO_INVITE', payload: newUser })
+      toast.success('Convite enviado')
+    }
+  }
+
+  function handleToggleStatus(user: Usuario) {
+    dispatch({ type: 'USUARIO_TOGGLE_STATUS', payload: user.id })
+    toast.success(user.status === 'ativo' ? 'Usuário desativado' : 'Usuário reativado')
+  }
+
+  function handleRemoveConfirm() {
+    if (removeId) {
+      dispatch({ type: 'USUARIO_REMOVE', payload: removeId })
+      toast.success('Usuário removido')
+      setRemoveId(null)
+    }
+  }
+
   return (
     <div className='flex flex-col gap-6'>
       {/* Header */}
       <div className='flex items-start justify-between'>
         <div>
-          <h2 className='font-serif text-[22px] font-normal tracking-tight'>
-            Usuários
-          </h2>
+          <h2 className='font-serif text-[22px] font-normal tracking-tight'>Usuários</h2>
           <span className='text-xs text-muted-foreground font-light'>
-            {usuariosData.length} membros do time
+            {state.usuarios.length} membros do time
           </span>
         </div>
-        <Button size='sm'>
+        <Button size='sm' onClick={handleInvite}>
           <PlusIcon className='size-4 mr-1.5' /> Convidar
         </Button>
       </div>
@@ -75,9 +133,8 @@ const UsuariosPage = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {usuariosData.map((user) => (
+            {state.usuarios.map((user) => (
               <TableRow key={user.id}>
-                {/* Member */}
                 <TableCell>
                   <div className='flex items-center gap-3'>
                     <Avatar className='size-9'>
@@ -86,25 +143,17 @@ const UsuariosPage = () => {
                     </Avatar>
                     <div>
                       <p className='text-sm font-medium'>{user.name}</p>
-                      <p className='text-xs text-muted-foreground'>
-                        {user.email}
-                      </p>
+                      <p className='text-xs text-muted-foreground'>{user.email}</p>
                     </div>
                   </div>
                 </TableCell>
 
-                {/* Role */}
                 <TableCell>
                   {user.role === 'Admin' && <Badge>Admin</Badge>}
-                  {user.role === 'Editor' && (
-                    <Badge variant='outline'>Editor</Badge>
-                  )}
-                  {user.role === 'Viewer' && (
-                    <Badge variant='secondary'>Viewer</Badge>
-                  )}
+                  {user.role === 'Editor' && <Badge variant='outline'>Editor</Badge>}
+                  {user.role === 'Viewer' && <Badge variant='secondary'>Viewer</Badge>}
                 </TableCell>
 
-                {/* Status */}
                 <TableCell>
                   <div className='flex items-center gap-2'>
                     <span
@@ -118,12 +167,10 @@ const UsuariosPage = () => {
                   </div>
                 </TableCell>
 
-                {/* Last access */}
                 <TableCell className='text-sm text-muted-foreground'>
                   {formatLastAccess(user.lastAccess)}
                 </TableCell>
 
-                {/* Actions */}
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -132,11 +179,16 @@ const UsuariosPage = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align='end'>
-                      <DropdownMenuItem>Editar perfil</DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEdit(user)}>
+                        Editar perfil
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
                         {user.status === 'ativo' ? 'Desativar' : 'Reativar'}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className='text-red-500'>
+                      <DropdownMenuItem
+                        className='text-red-500'
+                        onClick={() => setRemoveId(user.id)}
+                      >
                         Remover
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -147,6 +199,34 @@ const UsuariosPage = () => {
           </TableBody>
         </Table>
       </div>
+
+      {/* Dialogs */}
+      <UserFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        initialData={editTarget}
+        onSave={handleSave}
+      />
+
+      <AlertDialog open={!!removeId} onOpenChange={(o) => !o && setRemoveId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário perderá o acesso à plataforma imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveConfirm}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

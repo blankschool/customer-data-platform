@@ -219,3 +219,38 @@ export const exportStats = {
   conflictsResolved: 38,
   readyToExport: 5665,
 }
+
+// ── Inconsistência unificada (Dashboard + InconsistenciasPage) ────────
+export type TipoInconsistencia = 'Duplicata' | 'Tag ausente' | 'Inadimplente' | 'Órfão'
+
+export type Inconsistencia = {
+  id: string
+  avatar: string
+  avatarFallback: string
+  name: string
+  email: string
+  phone: string
+  ocorrencias: number
+  tipo: TipoInconsistencia
+  fonte: string
+  sources: string[]
+  firstPurchase: string
+  currentTags: string[]
+  suggestedTags: string[]
+  conflict?: { label: string; vendas: string; email: string }
+  resolved: boolean
+  resolvedWith?: 'vendas' | 'email'
+}
+
+export const inconsistenciasFullData: Inconsistencia[] = [
+  { id: '1',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-1.png',  avatarFallback: 'AP', name: 'Ana Paula Ribeiro',  email: 'ana.ribeiro@email.com',      phone: '(11) 99872-3410', ocorrencias: 2, tipo: 'Duplicata',    fonte: 'Vendas',  sources: ['Vendas', 'E-mail'], firstPurchase: 'Jan 2024', currentTags: ['lead', 'newsletter'],    conflict: { label: 'TELEFONE DIVERGENTE', vendas: '(11) 99872-3410', email: '(11) 98341-7720' },          suggestedTags: ['cliente-ativo', 'comprou-2024', 'social-media'], resolved: false },
+  { id: '2',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-2.png',  avatarFallback: 'CM', name: 'Carlos Menezes',     email: 'c.menezes@outlook.com',      phone: '(21) 98765-4321', ocorrencias: 1, tipo: 'Tag ausente',  fonte: 'Vendas',  sources: ['Vendas'],           firstPurchase: 'Mar 2024', currentTags: ['lead'],                  suggestedTags: ['cliente-ativo', 'comprou-2024'],                 resolved: false },
+  { id: '3',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-3.png',  avatarFallback: 'FC', name: 'Fernanda Costa',     email: 'fercosta@gmail.com',         phone: '(31) 99654-1234', ocorrencias: 1, tipo: 'Tag ausente',  fonte: 'Vendas',  sources: ['Vendas'],           firstPurchase: 'Jun 2024', currentTags: ['cliente-ativo'],          suggestedTags: ['comprou-2024', 'newsletter'],                    resolved: false },
+  { id: '4',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-4.png',  avatarFallback: 'RA', name: 'Roberto Alves',      email: 'roberto.alv@empresa.com.br', phone: '(11) 97654-8765', ocorrencias: 1, tipo: 'Inadimplente', fonte: 'E-mail', sources: ['E-mail'],           firstPurchase: 'Nov 2023', currentTags: ['newsletter'],             conflict: { label: 'EMAIL DUPLICADO', vendas: 'roberto@empresa.com', email: 'r.alves@empresa.com.br' }, suggestedTags: ['inadimplente'],                                  resolved: false },
+  { id: '5',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-5.png',  avatarFallback: 'JM', name: 'Juliana Martins',    email: 'ju.martins@hotmail.com',     phone: '(41) 99876-5432', ocorrencias: 1, tipo: 'Duplicata',    fonte: 'Vendas',  sources: ['Vendas', 'E-mail'], firstPurchase: 'Feb 2024', currentTags: ['cliente-ativo', 'vip'],  conflict: { label: 'TELEFONE DIVERGENTE', vendas: '(41) 99876-5432', email: '(41) 97654-3210' },          suggestedTags: ['newsletter'],                                   resolved: false },
+  { id: '6',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-6.png',  avatarFallback: 'MO', name: 'Marcos Oliveira',    email: 'm.oliveira@uol.com.br',      phone: '(51) 98432-1098', ocorrencias: 1, tipo: 'Tag ausente',  fonte: 'Vendas',  sources: ['Vendas'],           firstPurchase: 'Aug 2024', currentTags: ['lead'],                  suggestedTags: ['social-media', 'newsletter'],                    resolved: false },
+  { id: '7',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-7.png',  avatarFallback: 'PS', name: 'Patricia Souza',     email: 'p.souza@gmail.com',          phone: '(11) 99321-6543', ocorrencias: 2, tipo: 'Duplicata',    fonte: 'Vendas',  sources: ['Vendas'],           firstPurchase: 'Dec 2023', currentTags: ['cliente-ativo'],          conflict: { label: 'NOME DIVERGENTE', vendas: 'Patricia Souza', email: 'Patrícia de Souza Lima' },      suggestedTags: ['vip', 'comprou-2024'],                          resolved: false },
+  { id: '8',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-8.png',  avatarFallback: 'TL', name: 'Thiago Lima',        email: 'thiago.lima@empresa.com',    phone: '(21) 98543-2109', ocorrencias: 1, tipo: 'Tag ausente',  fonte: 'E-mail', sources: ['E-mail'],           firstPurchase: 'Apr 2024', currentTags: ['b2b', 'newsletter'],     suggestedTags: ['cliente-ativo'],                                 resolved: false },
+  { id: '9',  avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-9.png',  avatarFallback: 'BN', name: 'Beatriz Nascimento', email: 'bea.nas@hotmail.com',        phone: '(31) 99765-4321', ocorrencias: 1, tipo: 'Órfão',        fonte: 'Vendas',  sources: ['Vendas'],           firstPurchase: 'Jan 2024', currentTags: ['inadimplente'],           suggestedTags: ['churn-risk'],                                   resolved: false },
+  { id: '10', avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-10.png', avatarFallback: 'RF', name: 'Rafael Ferreira',    email: 'rafael.f@outlook.com',       phone: '(11) 98654-3210', ocorrencias: 1, tipo: 'Tag ausente',  fonte: 'E-mail', sources: ['Vendas', 'E-mail'], firstPurchase: 'May 2024', currentTags: ['cliente-ativo'],          suggestedTags: ['comprou-2024', 'vip'],                          resolved: false },
+]
