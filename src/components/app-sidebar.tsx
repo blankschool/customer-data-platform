@@ -39,7 +39,7 @@ export default function AppSidebar() {
                         </Link>
                       </SidebarMenuButton>
                       {route.badge && (
-                        <SidebarMenuBadge className='bg-red-950/60 text-red-400 rounded-full text-[9px]'>
+                        <SidebarMenuBadge className='badge-error rounded-full border text-[9px]'>
                           {route.badge}
                         </SidebarMenuBadge>
                       )}

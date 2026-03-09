@@ -78,10 +78,10 @@ export const columns: ColumnDef<Item>[] = [
     cell: ({ row }) => {
       const status = row.getValue<Item['status']>('status')
       const badgeClass: Record<Item['status'], string> = {
-        failed:     'border-red-900/40 bg-red-950/30 text-red-400',
-        processing: 'border-amber-900/40 bg-amber-950/30 text-amber-400',
-        pending:    'border-orange-900/40 bg-orange-950/30 text-orange-400',
-        paid:       'border-emerald-900/40 bg-emerald-950/30 text-emerald-400',
+        failed:     'badge-error',
+        processing: 'badge-warning',
+        pending:    'badge-info',
+        paid:       'badge-success',
       }
       return (
         <Badge variant='outline' className={`rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 ${badgeClass[status]}`}>

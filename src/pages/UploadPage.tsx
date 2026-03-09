@@ -80,7 +80,7 @@ const UploadPage = () => {
                     {row.status === 'success' ? (
                       <Badge
                         variant='outline'
-                        className='rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 border-emerald-900/40 bg-emerald-950/30 text-emerald-400'
+                        className='badge-success rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5'
                       >
                         <span className='size-1.5 rounded-full bg-current inline-block' />
                         Sucesso
@@ -88,7 +88,7 @@ const UploadPage = () => {
                     ) : (
                       <Badge
                         variant='outline'
-                        className='rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 border-red-900/40 bg-red-950/30 text-red-400'
+                        className='badge-error rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5'
                       >
                         <span className='size-1.5 rounded-full bg-current inline-block' />
                         Erro de formato
