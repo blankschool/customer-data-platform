@@ -1,30 +1,36 @@
 import { Fragment, useState } from 'react'
 
 import {
+  ChevronsRightIcon,
   DatabaseIcon,
   DownloadIcon,
-  LanguagesIcon,
+  HomeIcon,
   LayoutDashboardIcon,
   TagIcon,
   TriangleAlertIcon,
   UploadIcon,
   UserCogIcon,
   UsersIcon,
-  UserXIcon
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
@@ -33,7 +39,6 @@ import {
   SidebarTrigger
 } from '@/components/ui/sidebar'
 
-import LanguageDropdown from '@/components/shadcn-studio/blocks/dropdown-language'
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile'
 import TransactionDatatable, { type Item } from '@/components/shadcn-studio/blocks/datatable-transaction'
 
@@ -106,17 +111,7 @@ const Dashboard = () => {
     <SidebarProvider className='h-screen overflow-hidden'>
       {/* ── Sidebar ───────────────────────────────────────────────── */}
       <Sidebar>
-        <SidebarHeader className='border-b border-white/8 px-7 pb-8 pt-8'>
-          <div className='font-serif text-lg font-medium tracking-tight text-sidebar-foreground flex items-center gap-2'>
-            <span className='text-[10px] opacity-50'>◆</span>
-            CDP
-          </div>
-          <div className='text-[10px] tracking-[0.14em] uppercase text-sidebar-foreground/30 mt-1 pl-[18px]'>
-            Customer Data Platform
-          </div>
-        </SidebarHeader>
-
-        <SidebarContent>
+<SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -216,9 +211,6 @@ const Dashboard = () => {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className='border-t border-white/8 px-7 py-5'>
-          <span className='text-[11px] text-sidebar-foreground/30'>V1.0 · MVP</span>
-        </SidebarFooter>
       </Sidebar>
 
       {/* ── Main area ─────────────────────────────────────────────── */}
@@ -229,7 +221,28 @@ const Dashboard = () => {
           <div className='flex items-center gap-4'>
             <SidebarTrigger />
             <Separator orientation='vertical' className='h-4' />
-            <h1 className='font-serif text-lg font-normal tracking-tight'>Upload de bases</h1>
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href='#'>
+                    <HomeIcon className='size-4' />
+                    <span className='sr-only'>Home</span>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator>
+                  <ChevronsRightIcon />
+                </BreadcrumbSeparator>
+                <BreadcrumbItem>
+                  <BreadcrumbLink href='#'>Base</BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator>
+                  <ChevronsRightIcon />
+                </BreadcrumbSeparator>
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Upload de bases</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
           </div>
 
           <div className='flex items-center gap-3'>
@@ -270,14 +283,6 @@ const Dashboard = () => {
 
             <Separator orientation='vertical' className='h-4 mx-0.5' />
 
-            {/* Enrichment: shadcn-studio dropdown blocks */}
-            <LanguageDropdown
-              trigger={
-                <Button variant='ghost' size='icon'>
-                  <LanguagesIcon />
-                </Button>
-              }
-            />
             <ProfileDropdown
               trigger={
                 <Button variant='ghost' size='icon' className='size-9'>
@@ -400,20 +405,6 @@ const Dashboard = () => {
               </Card>
             </section>
 
-            {/* Footer */}
-            <div className='flex items-center justify-between gap-3 pt-4 border-t border-border text-muted-foreground max-sm:flex-col'>
-              <p className='text-xs'>
-                {`©${new Date().getFullYear()}`}{' '}
-                <a href='#' className='text-foreground/50 hover:text-foreground transition-colors'>
-                  CDP Platform
-                </a>
-                {' '}· V1.0 MVP · Customer Data Platform
-              </p>
-              <div className='flex items-center gap-1.5 text-[10px] opacity-35'>
-                <UserXIcon className='size-3' />
-                <span>Nenhum registro é excluído sem confirmação</span>
-              </div>
-            </div>
           </main>
 
           {/* ── Detail panel ──────────────────────────────────── */}
