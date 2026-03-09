@@ -29,14 +29,6 @@ export const inconsistenciasData: Item[] = [
   { id: '25', avatar: 'https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-25.png', avatarFallback: 'SR', name: 'Sofia Ramos',        email: 'sofia.r@empresa.com',         amount: 1, status: 'processing', paidBy: 'visa'       },
 ]
 
-// ── Steps / pipeline ────────────────────────────────────────────────────
-export const steps = [
-  { n: 1, label: 'Upload',      state: 'done'   },
-  { n: 2, label: 'Diagnóstico', state: 'active' },
-  { n: 3, label: 'Revisão',     state: ''       },
-  { n: 4, label: 'Exportar',    state: ''       },
-]
-
 // ── Health metrics ──────────────────────────────────────────────────────
 export const healthMetrics = [
   { label: 'Total de contatos', value: '5.949', delta: 'Antes da deduplicação', color: ''                                    },
