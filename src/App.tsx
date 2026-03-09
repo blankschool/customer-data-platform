@@ -12,7 +12,7 @@ import PerfisPage from './pages/PerfisPage'
 
 function App() {
   return (
-    <ThemeProvider defaultTheme='dark'>
+    <ThemeProvider defaultTheme='system'>
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
