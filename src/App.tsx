@@ -1,13 +1,33 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Dashboard from './pages/Dashboard'
+import { ThemeProvider } from '@/lib/theme'
+import AppLayout from './components/app-layout'
+import DashboardPage from './pages/DashboardPage'
+import UploadPage from './pages/UploadPage'
+import InconsistenciasPage from './pages/InconsistenciasPage'
+import ContatosPage from './pages/ContatosPage'
+import TagsPage from './pages/TagsPage'
+import ExportarPage from './pages/ExportarPage'
+import UsuariosPage from './pages/UsuariosPage'
+import PerfisPage from './pages/PerfisPage'
 
 function App() {
   return (
+    <ThemeProvider defaultTheme='dark'>
     <BrowserRouter>
       <Routes>
-        <Route path='/' element={<Dashboard />} />
+        <Route element={<AppLayout />}>
+          <Route path='/' element={<DashboardPage />} />
+          <Route path='/upload' element={<UploadPage />} />
+          <Route path='/inconsistencias' element={<InconsistenciasPage />} />
+          <Route path='/contatos' element={<ContatosPage />} />
+          <Route path='/tags' element={<TagsPage />} />
+          <Route path='/exportar' element={<ExportarPage />} />
+          <Route path='/usuarios' element={<UsuariosPage />} />
+          <Route path='/perfis' element={<PerfisPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   )
 }
 
