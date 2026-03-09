@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -16,7 +16,9 @@ import type { TipoInconsistencia } from '@/lib/mock-data'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const basesCarregadas = [
+type Base = { id: string; label: string; fileName: string | null; info: string | null; loaded: boolean }
+
+const basesIniciais: Base[] = [
   { id: '1', label: 'BASE DE VENDAS', fileName: 'clientes_vendas_mar25.csv',    info: '2.847 contatos · 12 colunas', loaded: true  },
   { id: '2', label: 'BASE DE E-MAIL', fileName: 'mailchimp_export_032025.xlsx', info: '3.102 contatos · 9 colunas',  loaded: true  },
   { id: '3', label: 'CRM WHATSAPP',   fileName: null,                           info: null,                          loaded: false },
@@ -45,6 +47,35 @@ const DashboardPage = () => {
   const { state, dispatch } = useStore()
   const [activeFilter, setActiveFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>('1')
+  const [bases, setBases] = useState<Base[]>(basesIniciais)
+
+  // Upload refs
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const pendingBaseId = useRef<string | null>(null)
+
+  function handleCardClick(base: Base) {
+    if (!base.loaded) {
+      pendingBaseId.current = base.id
+      fileInputRef.current?.click()
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !pendingBaseId.current) return
+    const sizeKb = Math.round(file.size / 1024)
+    const sizeLabel = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`
+    setBases((prev) =>
+      prev.map((b) =>
+        b.id === pendingBaseId.current
+          ? { ...b, loaded: true, fileName: file.name, info: `Processando · ${sizeLabel}` }
+          : b,
+      ),
+    )
+    toast.success(`Arquivo "${file.name}" carregado`)
+    e.target.value = ''
+    pendingBaseId.current = null
+  }
 
   const pending = state.inconsistencias.filter((i) => !i.resolved)
   const filtered = pending.filter((i) => filterMatch(i.tipo, activeFilter))
@@ -84,35 +115,47 @@ const DashboardPage = () => {
 
         {/* Bases carregadas */}
         <section>
-          <div className='flex items-baseline gap-3 mb-5'>
+          <div className='mb-5'>
             <h2 className='font-serif text-[22px] font-normal tracking-tight'>Bases carregadas</h2>
             <span className='text-xs text-muted-foreground font-light'>CSV ou Excel · máx. 50 MB por arquivo</span>
           </div>
 
-          <div className='grid grid-cols-3 gap-4'>
-            {basesCarregadas.map((base) => (
+          {/* Hidden file input — triggered by empty card click */}
+          <input
+            ref={fileInputRef}
+            type='file'
+            accept='.csv,.xlsx,.xls'
+            className='hidden'
+            onChange={handleFileChange}
+          />
+
+          <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
+            {bases.map((base) => (
               <div
                 key={base.id}
-                className='relative rounded-xl border border-border bg-card px-5 py-5 flex flex-col gap-3 hover:bg-card/60 transition-all cursor-pointer'
+                onClick={() => handleCardClick(base)}
+                className='relative rounded-xl border border-border bg-card px-5 py-5 flex flex-col gap-3 hover:bg-card/60 transition-all cursor-pointer min-w-0 overflow-hidden'
               >
                 {base.loaded && <span className='absolute top-3.5 right-3.5 size-1.5 rounded-full bg-emerald-500' />}
-                <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>{base.label}</span>
+                <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground truncate block pr-4'>
+                  {base.label}
+                </span>
                 {base.loaded ? (
                   <>
-                    <FileIcon className='size-7 text-muted-foreground/50' />
-                    <div>
-                      <p className='text-sm font-medium leading-none mb-1'>{base.fileName}</p>
-                      <p className='text-[11px] text-muted-foreground font-light'>{base.info}</p>
+                    <FileIcon className='size-7 text-muted-foreground/50 flex-shrink-0' />
+                    <div className='min-w-0'>
+                      <p className='text-sm font-medium leading-none mb-1 truncate'>{base.fileName}</p>
+                      <p className='text-[11px] text-muted-foreground font-light truncate'>{base.info}</p>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className='size-7 rounded border border-dashed border-border flex items-center justify-center'>
+                    <div className='size-7 rounded border border-dashed border-border flex items-center justify-center flex-shrink-0'>
                       <PlusIcon className='size-3.5 text-muted-foreground' />
                     </div>
-                    <div>
-                      <p className='text-sm text-muted-foreground'>Clique para carregar</p>
-                      <p className='text-[11px] text-muted-foreground/60 font-light'>CSV ou Excel</p>
+                    <div className='min-w-0'>
+                      <p className='text-sm text-muted-foreground truncate'>Clique para carregar</p>
+                      <p className='text-[11px] text-muted-foreground/60 font-light truncate'>CSV ou Excel</p>
                     </div>
                   </>
                 )}
@@ -180,13 +223,19 @@ const DashboardPage = () => {
           </div>
 
           {/* Table */}
-          <div className='rounded-lg border border-border overflow-hidden'>
-            <table className='w-full text-sm'>
+          <div className='rounded-lg border border-border overflow-x-auto'>
+            <table className='w-full text-sm table-fixed'>
               <thead>
                 <tr className='border-b border-border bg-muted/30'>
-                  {['Contato', 'Ocorr.', 'Tipo', 'Fonte', 'Ações'].map((h) => (
-                    <th key={h} className='text-left text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-normal px-4 py-3'>
-                      {h}
+                  {[
+                    { label: 'Contato',           cls: '' },
+                    { label: 'Ocorr.',  hide: true, cls: 'w-16' },
+                    { label: 'Tipo',               cls: 'w-28' },
+                    { label: 'Fonte',   hide: true, cls: 'w-24' },
+                    { label: 'Ações',              cls: 'w-16' },
+                  ].map((h) => (
+                    <th key={h.label} className={`text-left text-[10px] uppercase tracking-[0.1em] text-muted-foreground font-normal px-4 py-3 ${h.cls}${h.hide ? ' hidden sm:table-cell' : ''}`}>
+                      {h.label}
                     </th>
                   ))}
                 </tr>
@@ -200,25 +249,25 @@ const DashboardPage = () => {
                       selectedId === row.id ? 'bg-muted/40' : 'hover:bg-muted/20'
                     }`}
                   >
-                    <td className='px-4 py-3.5'>
-                      <div className='flex items-center gap-3'>
+                    <td className='px-4 py-3.5 min-w-0'>
+                      <div className='flex items-center gap-3 min-w-0'>
                         <Avatar className='size-7 rounded-full flex-shrink-0'>
                           <AvatarImage src={row.avatar} />
                           <AvatarFallback className='text-[10px]'>{row.avatarFallback}</AvatarFallback>
                         </Avatar>
-                        <div>
-                          <p className='text-xs font-medium leading-none mb-0.5'>{row.name}</p>
-                          <p className='text-[10px] text-muted-foreground font-light'>{row.email}</p>
+                        <div className='min-w-0'>
+                          <p className='text-xs font-medium leading-none mb-0.5 truncate'>{row.name}</p>
+                          <p className='text-[10px] text-muted-foreground font-light truncate'>{row.email}</p>
                         </div>
                       </div>
                     </td>
-                    <td className='px-4 py-3.5 text-xs text-muted-foreground'>{row.ocorrencias}×</td>
+                    <td className='px-4 py-3.5 text-xs text-muted-foreground hidden sm:table-cell'>{row.ocorrencias}×</td>
                     <td className='px-4 py-3.5'>
                       <span className={`text-[10px] px-2 py-0.5 rounded border ${tipoBadgeClass(row.tipo)}`}>
                         {row.tipo}
                       </span>
                     </td>
-                    <td className='px-4 py-3.5'>
+                    <td className='px-4 py-3.5 hidden sm:table-cell'>
                       <span className='text-[10px] px-2 py-0.5 rounded border border-border bg-muted text-muted-foreground'>
                         {row.fonte}
                       </span>
