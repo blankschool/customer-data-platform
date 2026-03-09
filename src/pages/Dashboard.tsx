@@ -118,7 +118,6 @@ const Dashboard = () => {
 
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Visão geral</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
