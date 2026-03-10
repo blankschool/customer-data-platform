@@ -1,5 +1,38 @@
 # CDP Platform — Skill Reference
 
+---
+
+## ⚠️ REGRA OBRIGATÓRIA DE MEMÓRIA — Ler antes de qualquer ação
+
+**Antes de qualquer pesquisa, alteração de código, ou decisão de arquitetura:**
+
+### 1. Consultar LightRAG (memória semântica do projeto)
+```
+mcp__lightrag__search(query: "<tópico relevante>", mode: "mix")
+```
+Use o MCP `lightrag` para recuperar contexto já indexado: decisões anteriores, padrões estabelecidos, bugs conhecidos, status de páginas.
+
+### 2. Consultar Obsidian (documentação estruturada)
+Vault: `/Users/miguelcrasto/Documents/Obsidian Vault/CDP Platform/`
+Use o MCP `obsidian-cli` ou leia os arquivos `.md` diretamente para ver:
+- Status atual de cada página
+- Decisões de arquitetura registradas
+- Histórico de mudanças
+
+### 3. Alimentar após cada alteração
+Toda mudança relevante deve ser indexada **antes do commit**:
+```
+mcp__lightrag__upsert_document(text: "<resumo da mudança + contexto>", file_source: "cdp/<arquivo>")
+```
+E o doc Obsidian correspondente deve ser atualizado com o novo status.
+
+### Por que isso importa
+- O LightRAG e Obsidian **substituem o contexto de janela** para decisões de projeto
+- Não depender de memória de sessão evita regressões e contradições
+- Toda sessão começa "do zero" — o RAG é o estado persistente
+
+---
+
 ## Projeto
 Customer Data Platform — SPA React para unificação, limpeza e exportação de contatos.
 Repositório: https://github.com/blankschool/customer-data-platform

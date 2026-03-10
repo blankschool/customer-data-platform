@@ -151,7 +151,7 @@ const ContatosPage = () => {
                         <Badge
                           key={tag}
                           variant='outline'
-                          className='rounded-full px-2 py-0.5 text-[10px] font-normal border-border text-muted-foreground'
+                          className='rounded-full px-2 py-0.5 text-[10px] font-normal border-border text-muted-foreground whitespace-nowrap'
                         >
                           {tag}
                         </Badge>
