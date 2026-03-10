@@ -8,6 +8,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import { MoreHorizontalIcon, XIcon } from 'lucide-react'
 import { healthMetrics, FONTE_LABELS, type FonteContato, type TipoInconsistencia } from '@/lib/mock-data'
 import { useStore } from '@/lib/store'
@@ -34,6 +40,7 @@ const InconsistenciasPage = () => {
   const { state, dispatch } = useStore()
   const [activeFilter, setActiveFilter] = useState('all')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const pending = state.inconsistencias.filter((i) => !i.resolved)
   const filtered = pending.filter((i) => filterMatch(i.tipo, activeFilter))
@@ -61,6 +68,12 @@ const InconsistenciasPage = () => {
   const handleAddTag = (id: string, tag: string) => {
     dispatch({ type: 'INCONSISTENCIA_ADD_TAG', payload: { id, tag } })
     toast.success(`Tag "${tag}" adicionada`)
+  }
+
+  const handleRowClick = (id: string) => {
+    const newId = id === selectedId ? null : id
+    setSelectedId(newId)
+    if (newId && window.innerWidth < 1280) setSheetOpen(true)
   }
 
   return (
@@ -140,7 +153,7 @@ const InconsistenciasPage = () => {
                 {filtered.map((row) => (
                   <tr
                     key={row.id}
-                    onClick={() => setSelectedId(row.id === selectedId ? null : row.id)}
+                    onClick={() => handleRowClick(row.id)}
                     className={`border-b border-border last:border-0 cursor-pointer transition-colors ${
                       selectedId === row.id ? 'bg-muted/40' : 'hover:bg-muted/20'
                     }`}
@@ -251,7 +264,7 @@ const InconsistenciasPage = () => {
                       <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
                         {FONTE_LABELS[entry.fonte]}
                       </span>
-                      <span className='text-xs text-right'>{entry.value}</span>
+                      <span className='text-xs text-right flex-1 min-w-0 truncate'>{entry.value}</span>
                     </div>
                   ))}
                   <div className='flex gap-1.5 mt-0.5'>
@@ -292,15 +305,6 @@ const InconsistenciasPage = () => {
               </div>
             )}
 
-            <div className='px-6 py-5 mt-auto'>
-              <Button
-                className='w-full text-xs'
-                size='sm'
-                onClick={() => toast.success('Alterações salvas')}
-              >
-                Salvar alterações
-              </Button>
-            </div>
           </>
         ) : (
           <div className='flex-1 flex items-center justify-center'>
@@ -310,6 +314,93 @@ const InconsistenciasPage = () => {
           </div>
         )}
       </aside>
+
+      {/* ── Sheet: mobile conflict panel (< xl) ──────────────── */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent side='bottom' className='h-[80vh] overflow-y-auto rounded-t-xl'>
+          {selected && (
+            <>
+              <SheetHeader className='pb-4 border-b border-border mb-4'>
+                <SheetTitle className='font-serif font-normal text-left'>
+                  {selected.name}
+                </SheetTitle>
+                <p className='text-[11px] text-muted-foreground font-light'>{selected.email}</p>
+              </SheetHeader>
+
+              <div className='flex flex-col gap-4'>
+                {/* Info rows */}
+                <div className='flex flex-col gap-3'>
+                  <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Informações</span>
+                  {[
+                    { key: 'Telefone',        val: selected.conflict ? 'Conflito detectado' : selected.phone },
+                    { key: 'Fontes',          val: selected.sources.map((s) => FONTE_LABELS[s]).join(', ') },
+                    { key: 'Primeira compra', val: selected.firstPurchase },
+                    { key: 'Tags atuais',     val: selected.currentTags.join(', ') || '—' },
+                  ].map((row) => (
+                    <div key={row.key} className='flex justify-between items-center gap-3'>
+                      <span className='text-[11px] text-muted-foreground font-light shrink-0'>{row.key}</span>
+                      <span className='text-xs font-medium text-right flex-1 min-w-0 truncate'>{row.val}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Conflict resolution */}
+                {selected.conflict && (
+                  <div className='flex flex-col gap-3'>
+                    <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Conflito detectado</span>
+                    <div className='rounded-md border conflict-error p-3 flex flex-col gap-2.5'>
+                      <span className='text-[9px] uppercase tracking-[0.1em] text-error font-medium'>
+                        {selected.conflict.label}
+                      </span>
+                      {selected.conflict.entries.map((entry) => (
+                        <div key={entry.fonte} className='flex justify-between items-center gap-2'>
+                          <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
+                            {FONTE_LABELS[entry.fonte]}
+                          </span>
+                          <span className='text-xs text-right flex-1 min-w-0 truncate'>{entry.value}</span>
+                        </div>
+                      ))}
+                      <div className='flex gap-1.5 mt-0.5'>
+                        {selected.sources.map((fonte, idx) => (
+                          <Button
+                            key={fonte}
+                            size='sm'
+                            variant={idx === 0 ? 'default' : 'outline'}
+                            className='flex-1 h-7 text-[10px]'
+                            onClick={() => { handleResolve(selected.id, fonte); setSheetOpen(false) }}
+                          >
+                            Usar {FONTE_LABELS[fonte]}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Suggested tags */}
+                {selected.suggestedTags.length > 0 && (
+                  <div className='flex flex-col gap-3'>
+                    <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Tags sugeridas</span>
+                    <div className='flex flex-wrap gap-1.5'>
+                      {selected.suggestedTags
+                        .filter((tag) => !selected.currentTags.includes(tag))
+                        .map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => handleAddTag(selected.id, tag)}
+                            className='text-[10px] px-2.5 py-1 rounded border border-border text-muted-foreground bg-muted hover:border-muted-foreground/50 hover:text-foreground cursor-pointer transition-all'
+                          >
+                            + {tag}
+                          </button>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

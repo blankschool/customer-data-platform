@@ -20,6 +20,7 @@ import {
 import { cn } from '@/lib/utils'
 import { exportCSV, exportExcel } from '@/lib/export-utils'
 import { useStore } from '@/lib/store'
+import { FONTE_LABELS, type FonteContato } from '@/lib/mock-data'
 import { toast } from 'sonner'
 
 type Format = 'csv' | 'excel'
@@ -159,7 +160,7 @@ const ExportarPage = () => {
                   <TableCell className='text-sm font-medium'>{c.name}</TableCell>
                   <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.email}</TableCell>
                   <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.phone}</TableCell>
-                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.source}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{FONTE_LABELS[c.source as FonteContato] ?? c.source}</TableCell>
                   <TableCell className='text-sm text-muted-foreground'>
                     {c.tags.join(', ')}
                   </TableCell>

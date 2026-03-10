@@ -31,7 +31,7 @@ import {
 import { ContactEditDialog } from '@/components/contact-edit-dialog'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
-import type { Contato } from '@/lib/mock-data'
+import { FONTE_LABELS, type FonteContato, type Contato } from '@/lib/mock-data'
 
 const PAGE_SIZE = 10
 
@@ -141,7 +141,7 @@ const ContatosPage = () => {
 
                   <TableCell className='hidden sm:table-cell'>
                     <span className='text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground bg-muted'>
-                      {c.source}
+                      {FONTE_LABELS[c.source as FonteContato] ?? c.source}
                     </span>
                   </TableCell>
 

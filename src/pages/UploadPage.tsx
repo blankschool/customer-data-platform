@@ -6,6 +6,7 @@ import {
   CheckCircle2Icon,
   Loader2Icon,
   RotateCcwIcon,
+  Trash2Icon,
   AlertTriangleIcon,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -143,8 +144,8 @@ const UploadPage = () => {
     dispatch({ type: 'IMPORTACAO_REVERTER', payload: revertTarget.id })
     toast.success(
       count > 0
-        ? `Importação revertida. ${count} contato${count !== 1 ? 's' : ''} marcado${count !== 1 ? 's' : ''} como órfão.`
-        : 'Importação revertida com sucesso.',
+        ? `Base removida. ${count} contato${count !== 1 ? 's' : ''} marcado${count !== 1 ? 's' : ''} como órfão.`
+        : 'Base removida com sucesso.',
     )
     setRevertTarget(null)
   }
@@ -288,20 +289,12 @@ const UploadPage = () => {
                 onClick={() => setRevertTarget(imp)}
                 className='flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-destructive transition-colors mt-auto w-fit'
               >
-                <RotateCcwIcon className='size-3' />
-                Reverter importação
+                <Trash2Icon className='size-3' />
+                Remover base
               </button>
             </div>
           ))}
 
-          {/* Add new base shortcut */}
-          <button
-            onClick={() => fileRef.current?.click()}
-            className='rounded-lg border-2 border-dashed border-border/50 bg-transparent px-5 py-5 flex flex-col items-center justify-center gap-2 hover:border-muted-foreground/40 hover:bg-muted/20 transition-all cursor-pointer min-h-[110px]'
-          >
-            <UploadCloudIcon className='size-5 text-muted-foreground/40' />
-            <span className='text-xs text-muted-foreground font-light'>Adicionar fonte</span>
-          </button>
         </div>
       </section>
 
@@ -363,8 +356,8 @@ const UploadPage = () => {
                       )}
                       {imp.status === 'revertida' && (
                         <Badge variant='outline' className='rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 whitespace-nowrap text-muted-foreground border-border'>
-                          <RotateCcwIcon className='size-3' />
-                          Revertida
+                          <Trash2Icon className='size-3' />
+                          Removida
                         </Badge>
                       )}
                     </TableCell>
@@ -373,9 +366,9 @@ const UploadPage = () => {
                         <button
                           onClick={() => setRevertTarget(imp)}
                           className='text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-destructive/10'
-                          title='Reverter importação'
+                          title='Remover base'
                         >
-                          <RotateCcwIcon className='size-3.5' />
+                          <Trash2Icon className='size-3.5' />
                         </button>
                       )}
                     </TableCell>
@@ -393,12 +386,12 @@ const UploadPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className='flex items-center gap-2'>
               <AlertTriangleIcon className='size-4 text-destructive' />
-              Reverter importação
+              Remover base
             </AlertDialogTitle>
             <AlertDialogDescription className='space-y-1'>
               {revertTarget && (
                 <>
-                  Isso reverterá <strong>{revertTarget.fileName}</strong> ({FONTE_LABELS[revertTarget.fonte]}).
+                  Isso removerá <strong>{revertTarget.fileName}</strong> ({FONTE_LABELS[revertTarget.fonte]}).
                   {revertTarget.contatosIds.length > 0 && (
                     <> <strong>{revertTarget.contatosIds.length} contato{revertTarget.contatosIds.length !== 1 ? 's' : ''}</strong> exclusivo{revertTarget.contatosIds.length !== 1 ? 's' : ''} desta importação será marcado como <strong>órfão</strong>.</>
                   )}{' '}
@@ -413,7 +406,7 @@ const UploadPage = () => {
               onClick={confirmReverter}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
-              Reverter importação
+              Remover base
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
