@@ -193,15 +193,15 @@ export type ConflictEntry = { fonte: FonteContato; value: string }
 ### Lógica de orphaning (IMPORTACAO_REVERTER)
 Quando uma importação é revertida, o reducer itera todos os contatos cujo `importacoes[]` aponta para o ID revertido. Se **todos** os refs daquele contato apontam para importações revertidas → `importStatus: 'orphaned'`; caso contrário mantém `'ativo'`.
 
-### Estado de implementação atual (v0.6)
+### Estado de implementação atual (v0.7)
 | Página | Status |
 |--------|--------|
-| UploadPage | ✅ Store-connected + 3 fontes + reverter AlertDialog |
-| DashboardPage | ✅ Completa |
-| InconsistenciasPage | ✅ Painel dinâmico N-fontes |
-| ContatosPage | ✅ CRUD completo |
+| UploadPage | ✅ 1 entry point · "Remover base" · Trash2Icon · sem dashed card |
+| DashboardPage | ✅ View-only · counters por tipo · CTAs → rotas corretas |
+| InconsistenciasPage | ✅ Sheet mobile drawer · conflict values visíveis · sem phantom save |
+| ContatosPage | ✅ CRUD completo · FONTE_LABELS aplicado |
 | TagsPage | ✅ Dialogs wired |
-| ExportarPage | ✅ Export real CSV/XLSX |
+| ExportarPage | ✅ Export real CSV/XLSX · FONTE_LABELS aplicado |
 | UsuariosPage | ✅ Invite/edit/remove |
 | PerfisPage | ✅ Switch toggles |
 
@@ -209,6 +209,53 @@ Quando uma importação é revertida, o reducer itera todos os contatos cujo `im
 - `src/components/contact-edit-dialog.tsx` ✅
 - `src/components/tag-form-dialog.tsx` ✅
 - `src/components/user-form-dialog.tsx` ✅
+
+---
+
+## Atualização v0.7 (2026-03-10)
+
+### Princípio de responsabilidade única por página
+Cada rota tem UMA função. Violações corrigidas nesta versão:
+
+| Página | Função exclusiva |
+|--------|-----------------|
+| Dashboard | Visão geral + CTAs de navegação (read-only) |
+| Upload | Única porta de entrada para importação de bases |
+| Inconsistências | Resolução de conflitos (sem edição de contatos) |
+| Contatos | CRUD de contatos |
+| Tags | CRUD de tags |
+| Exportar | Geração de CSV/XLSX |
+| Usuários | Gestão de membros da equipe |
+| Perfis | Configuração de permissões |
+
+### Mudanças v0.7
+
+**DashboardPage** — reescrita completa:
+- Remove todo upload logic (local state `bases`, `fileInputRef`, handlers)
+- Remove aside panel + tabela de inconsistências duplicada
+- Deriva `activeBases` de `state.importacoes` (read-only, mesmo padrão do UploadPage)
+- 4 counters de inconsistência por tipo (Duplicatas/Tag ausente/Inadimplentes/Órfãos)
+- CTA "Resolver X inconsistências →" → `/inconsistencias`
+- "Gerenciar →" bases → `/upload`
+- "Ações rápidas": 3 link cards para `/contatos`, `/exportar`, `/upload`
+
+**UploadPage**:
+- Remove dashed card "Adicionar fonte" (evita 2ª entrada de importação sem seleção de fonte)
+- `RotateCcwIcon` → `Trash2Icon` para ações de remoção
+- "Reverter importação" → "Remover base" em 4 pontos (botão card, title do ícone, AlertDialog title + action)
+- Toast: "Importação revertida" → "Base removida"
+- Badge: "Revertida" → "Removida"
+
+**InconsistenciasPage**:
+- Remove phantom button "Salvar alterações" (era `onClick={() => toast.success(...)}` sem dispatch)
+- Fix conflict values: `flex-1 min-w-0 truncate` no span de valor (telefones agora visíveis)
+- `handleRowClick(id)`: seleciona linha E abre Sheet quando `window.innerWidth < 1280`
+- Sheet `side='bottom'` com `h-[80vh]` — replica painel aside completo para mobile
+- "Usar Vendas"/"Usar E-mail" no Sheet fecha o drawer via `setSheetOpen(false)`
+
+**ContatosPage + ExportarPage**:
+- `{c.source}` → `{FONTE_LABELS[c.source as FonteContato] ?? c.source}`
+- Importam `FONTE_LABELS` e `FonteContato` de `@/lib/mock-data`
 
 ### Documentação externa
 - **Obsidian**: `/Users/miguelcrasto/Documents/Obsidian Vault/CDP Platform/` (10 docs)
