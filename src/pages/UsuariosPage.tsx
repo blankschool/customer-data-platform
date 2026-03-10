@@ -121,29 +121,29 @@ const UsuariosPage = () => {
       </div>
 
       {/* Table */}
-      <div className='rounded-lg border border-border overflow-hidden'>
+      <div className='rounded-lg border border-border overflow-x-auto'>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Membro</TableHead>
               <TableHead>Perfil</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Último acesso</TableHead>
+              <TableHead className='hidden sm:table-cell'>Status</TableHead>
+              <TableHead className='hidden sm:table-cell'>Último acesso</TableHead>
               <TableHead className='w-12'>Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {state.usuarios.map((user) => (
               <TableRow key={user.id}>
-                <TableCell>
-                  <div className='flex items-center gap-3'>
-                    <Avatar className='size-9'>
+                <TableCell className='min-w-0'>
+                  <div className='flex items-center gap-3 min-w-0'>
+                    <Avatar className='size-9 flex-shrink-0'>
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{user.avatarFallback}</AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className='text-sm font-medium'>{user.name}</p>
-                      <p className='text-xs text-muted-foreground'>{user.email}</p>
+                    <div className='min-w-0'>
+                      <p className='text-sm font-medium truncate'>{user.name}</p>
+                      <p className='text-xs text-muted-foreground truncate'>{user.email}</p>
                     </div>
                   </div>
                 </TableCell>
@@ -154,7 +154,7 @@ const UsuariosPage = () => {
                   {user.role === 'Viewer' && <Badge variant='secondary'>Viewer</Badge>}
                 </TableCell>
 
-                <TableCell>
+                <TableCell className='hidden sm:table-cell'>
                   <div className='flex items-center gap-2'>
                     <span
                       className={`size-2 rounded-full ${
@@ -167,7 +167,7 @@ const UsuariosPage = () => {
                   </div>
                 </TableCell>
 
-                <TableCell className='text-sm text-muted-foreground'>
+                <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>
                   {formatLastAccess(user.lastAccess)}
                 </TableCell>
 

@@ -107,14 +107,14 @@ const ContatosPage = () => {
       </div>
 
       {/* ── Table ──────────────────────────────────────────────── */}
-      <div className='rounded-lg border border-border overflow-hidden'>
+      <div className='rounded-lg border border-border overflow-x-auto'>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className='text-muted-foreground h-12 pl-4'>Contato</TableHead>
-              <TableHead className='text-muted-foreground h-12'>Telefone</TableHead>
-              <TableHead className='text-muted-foreground h-12'>Fonte</TableHead>
-              <TableHead className='text-muted-foreground h-12'>Tags</TableHead>
+              <TableHead className='text-muted-foreground h-12 hidden sm:table-cell'>Telefone</TableHead>
+              <TableHead className='text-muted-foreground h-12 hidden sm:table-cell'>Fonte</TableHead>
+              <TableHead className='text-muted-foreground h-12 hidden sm:table-cell'>Tags</TableHead>
               <TableHead className='text-muted-foreground h-12'>Status</TableHead>
               <TableHead className='text-muted-foreground h-12 w-12' />
             </TableRow>
@@ -124,28 +124,28 @@ const ContatosPage = () => {
               const s = statusConfig[c.status]
               return (
                 <TableRow key={c.id}>
-                  <TableCell className='pl-4'>
-                    <div className='flex items-center gap-2'>
-                      <Avatar className='size-9'>
+                  <TableCell className='pl-4 min-w-0'>
+                    <div className='flex items-center gap-2 min-w-0'>
+                      <Avatar className='size-9 flex-shrink-0'>
                         <AvatarImage src={c.avatar} alt={c.name} />
                         <AvatarFallback className='text-xs'>{c.avatarFallback}</AvatarFallback>
                       </Avatar>
-                      <div className='flex flex-col text-sm'>
-                        <span className='font-medium'>{c.name}</span>
-                        <span className='text-muted-foreground'>{c.email}</span>
+                      <div className='flex flex-col text-sm min-w-0'>
+                        <span className='font-medium truncate'>{c.name}</span>
+                        <span className='text-muted-foreground truncate'>{c.email}</span>
                       </div>
                     </div>
                   </TableCell>
 
-                  <TableCell className='text-sm text-muted-foreground'>{c.phone}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.phone}</TableCell>
 
-                  <TableCell>
+                  <TableCell className='hidden sm:table-cell'>
                     <span className='text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground bg-muted'>
                       {c.source}
                     </span>
                   </TableCell>
 
-                  <TableCell>
+                  <TableCell className='hidden sm:table-cell'>
                     <div className='flex flex-wrap gap-1'>
                       {c.tags.map((tag) => (
                         <Badge

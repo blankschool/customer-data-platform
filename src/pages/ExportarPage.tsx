@@ -142,14 +142,14 @@ const ExportarPage = () => {
         <h3 className='font-serif text-[22px] font-normal tracking-tight mb-4'>
           Preview dos dados
         </h3>
-        <div className='rounded-lg border border-border overflow-hidden'>
+        <div className='rounded-lg border border-border overflow-x-auto'>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Fonte</TableHead>
+                <TableHead className='hidden sm:table-cell'>Email</TableHead>
+                <TableHead className='hidden sm:table-cell'>Telefone</TableHead>
+                <TableHead className='hidden sm:table-cell'>Fonte</TableHead>
                 <TableHead>Tags</TableHead>
               </TableRow>
             </TableHeader>
@@ -157,9 +157,9 @@ const ExportarPage = () => {
               {previewContacts.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className='text-sm font-medium'>{c.name}</TableCell>
-                  <TableCell className='text-sm text-muted-foreground'>{c.email}</TableCell>
-                  <TableCell className='text-sm text-muted-foreground'>{c.phone}</TableCell>
-                  <TableCell className='text-sm text-muted-foreground'>{c.source}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.email}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.phone}</TableCell>
+                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{c.source}</TableCell>
                   <TableCell className='text-sm text-muted-foreground'>
                     {c.tags.join(', ')}
                   </TableCell>
