@@ -4,10 +4,13 @@ import {
   tagsData,
   usuariosData,
   perfisData,
+  importacaoHistoricoData,
   type Contato,
   type Tag,
   type Usuario,
   type Perfil,
+  type ImportacaoHistorico,
+  type FonteContato,
 } from './mock-data'
 import { inconsistenciasFullData, type Inconsistencia } from './mock-data'
 
@@ -19,6 +22,7 @@ export type StoreState = {
   tags: Tag[]
   usuarios: Usuario[]
   perfis: Perfil[]
+  importacoes: ImportacaoHistorico[]
 }
 
 const initialState: StoreState = {
@@ -27,6 +31,7 @@ const initialState: StoreState = {
   tags: [...tagsData],
   usuarios: [...usuariosData],
   perfis: [...perfisData],
+  importacoes: [...importacaoHistoricoData],
 }
 
 // ── Actions ────────────────────────────────────────────────────────────────────
@@ -39,7 +44,7 @@ export type Action =
   | { type: 'CONTATO_ADD_TAG'; payload: { id: string; tag: string } }
   | { type: 'CONTATO_REMOVE_TAG'; payload: { id: string; tag: string } }
   // Inconsistências
-  | { type: 'INCONSISTENCIA_RESOLVE'; payload: { id: string; choice: 'vendas' | 'email' } }
+  | { type: 'INCONSISTENCIA_RESOLVE'; payload: { id: string; choice: FonteContato } }
   | { type: 'INCONSISTENCIA_MARK_ORPHAN'; payload: string }
   | { type: 'INCONSISTENCIA_ADD_TAG'; payload: { id: string; tag: string } }
   | { type: 'INCONSISTENCIA_REMOVE'; payload: string }
@@ -54,6 +59,10 @@ export type Action =
   | { type: 'USUARIO_REMOVE'; payload: string }
   // Perfis
   | { type: 'PERFIL_TOGGLE_PERMISSION'; payload: { perfilId: string; category: string; actionName: string } }
+  // Importações
+  | { type: 'IMPORTACAO_ADD'; payload: ImportacaoHistorico }
+  | { type: 'IMPORTACAO_UPDATE_STATUS'; payload: { id: string; status: ImportacaoHistorico['status'] } }
+  | { type: 'IMPORTACAO_REVERTER'; payload: string }
 
 // ── Reducer ────────────────────────────────────────────────────────────────────
 
@@ -201,6 +210,39 @@ function storeReducer(state: StoreState, action: Action): StoreState {
             : p,
         ),
       }
+    }
+
+    // ── Importações ─────────────────────────────────────────
+    case 'IMPORTACAO_ADD':
+      return { ...state, importacoes: [...state.importacoes, action.payload] }
+
+    case 'IMPORTACAO_UPDATE_STATUS':
+      return {
+        ...state,
+        importacoes: state.importacoes.map((i) =>
+          i.id === action.payload.id ? { ...i, status: action.payload.status } : i,
+        ),
+      }
+
+    case 'IMPORTACAO_REVERTER': {
+      // 1. Marcar importação como revertida
+      const updatedImportacoes = state.importacoes.map((i) =>
+        i.id === action.payload ? { ...i, status: 'revertida' as const } : i,
+      )
+
+      // 2. Recalcular importStatus de todos os contatos afetados
+      const updatedContatos = state.contatos.map((c) => {
+        if (!c.importacoes?.some((ref) => ref.importacaoId === action.payload)) return c
+
+        const isOrphaned = c.importacoes.every((ref) => {
+          const imp = updatedImportacoes.find((i) => i.id === ref.importacaoId)
+          return !imp || imp.status === 'revertida'
+        })
+
+        return { ...c, importStatus: (isOrphaned ? 'orphaned' : 'ativo') as const }
+      })
+
+      return { ...state, importacoes: updatedImportacoes, contatos: updatedContatos }
     }
 
     default:

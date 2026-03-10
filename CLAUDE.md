@@ -84,9 +84,14 @@ dispatch({ type: 'CONTATO_ADD_TAG', payload: { id, tag } })
 dispatch({ type: 'CONTATO_REMOVE_TAG', payload: { id, tag } })
 
 // Inconsistências
-dispatch({ type: 'INCONSISTENCIA_RESOLVE', payload: { id, choice: 'vendas' | 'email' } })
+dispatch({ type: 'INCONSISTENCIA_RESOLVE', payload: { id, choice: FonteContato } })
 dispatch({ type: 'INCONSISTENCIA_MARK_ORPHAN', payload: id })
 dispatch({ type: 'INCONSISTENCIA_ADD_TAG', payload: { id, tag } })
+
+// Importações (v0.6+)
+dispatch({ type: 'IMPORTACAO_ADD', payload: importacaoHistorico })
+dispatch({ type: 'IMPORTACAO_UPDATE_STATUS', payload: { id, status: 'processando' | 'ativa' | 'revertida' | 'erro' } })
+dispatch({ type: 'IMPORTACAO_REVERTER', payload: id })  // orphaning automático
 
 // Tags
 dispatch({ type: 'TAG_CREATE', payload: tag })
@@ -163,6 +168,54 @@ toast.error('Mensagem de erro')
 
 ---
 
+## Atualização v0.6 (2026-03-10)
+
+### Novos tipos em `mock-data.ts`
+```typescript
+export type FonteContato = 'vendas' | 'email' | 'whatsapp'
+export const FONTE_LABELS: Record<FonteContato, string> = {
+  vendas: 'Vendas', email: 'E-mail', whatsapp: 'WhatsApp',
+}
+export type ImportacaoRef = {
+  importacaoId: string; fonte: FonteContato; addedAt: string; isPrimary: boolean
+}
+export type ImportacaoHistorico = {
+  id: string; fileName: string; fileSize: number; fonte: FonteContato
+  importedAt: string; contatosIds: string[]
+  status: 'processando' | 'ativa' | 'revertida' | 'erro'
+}
+export type ConflictEntry = { fonte: FonteContato; value: string }
+// Inconsistencia.conflict agora usa entries[] dinâmico:
+// conflict?: { label: string; entries: ConflictEntry[] }
+// Contato agora tem: source: FonteContato + importacoes?: ImportacaoRef[] + importStatus?
+```
+
+### Lógica de orphaning (IMPORTACAO_REVERTER)
+Quando uma importação é revertida, o reducer itera todos os contatos cujo `importacoes[]` aponta para o ID revertido. Se **todos** os refs daquele contato apontam para importações revertidas → `importStatus: 'orphaned'`; caso contrário mantém `'ativo'`.
+
+### Estado de implementação atual (v0.6)
+| Página | Status |
+|--------|--------|
+| UploadPage | ✅ Store-connected + 3 fontes + reverter AlertDialog |
+| DashboardPage | ✅ Completa |
+| InconsistenciasPage | ✅ Painel dinâmico N-fontes |
+| ContatosPage | ✅ CRUD completo |
+| TagsPage | ✅ Dialogs wired |
+| ExportarPage | ✅ Export real CSV/XLSX |
+| UsuariosPage | ✅ Invite/edit/remove |
+| PerfisPage | ✅ Switch toggles |
+
+### Dialogs existentes
+- `src/components/contact-edit-dialog.tsx` ✅
+- `src/components/tag-form-dialog.tsx` ✅
+- `src/components/user-form-dialog.tsx` ✅
+
+### Documentação externa
+- **Obsidian**: `/Users/miguelcrasto/Documents/Obsidian Vault/CDP Platform/` (10 docs)
+- **LightRAG**: https://mcpmacmiguel.ngrok.app (indexado via MCP)
+
+---
+
 ## Atualização v0.3 (2026-03-09)
 
 ### Actions adicionadas ao store
@@ -171,24 +224,3 @@ toast.error('Mensagem de erro')
 dispatch({ type: 'CONTATO_ADD', payload: contato })            // criar contato
 dispatch({ type: 'INCONSISTENCIA_REMOVE', payload: id })       // remover do store
 ```
-
-### Estado de implementação atual
-| Página | Status |
-|--------|--------|
-| UploadPage | ✅ Completa |
-| DashboardPage | ⚠️ Parcial — handlers pendentes |
-| InconsistenciasPage | ⚠️ Painel lateral hardcoded |
-| ContatosPage | ⚠️ Busca OK, CRUD pendente |
-| TagsPage | ⚠️ Dialog criado, não conectado |
-| ExportarPage | ⚠️ UI OK, botão não funcional |
-| UsuariosPage | ⬜ Completamente estática |
-| PerfisPage | ⬜ Ícones em vez de Switch |
-
-### Dialogs existentes
-- `src/components/contact-edit-dialog.tsx` ✅
-- `src/components/tag-form-dialog.tsx` ✅
-- `src/components/user-form-dialog.tsx` ⬜ ainda não criado
-
-### Documentação externa
-- **Obsidian**: `/Users/miguelcrasto/Documents/Obsidian Vault/CDP Platform/` (10 docs)
-- **LightRAG**: https://mcpmacmiguel.ngrok.app (indexado via MCP)

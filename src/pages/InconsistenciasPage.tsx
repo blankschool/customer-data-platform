@@ -9,10 +9,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontalIcon, XIcon } from 'lucide-react'
-import { healthMetrics } from '@/lib/mock-data'
+import { healthMetrics, FONTE_LABELS, type FonteContato, type TipoInconsistencia } from '@/lib/mock-data'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
-import type { TipoInconsistencia } from '@/lib/mock-data'
 
 function tipoBadgeClass(tipo: TipoInconsistencia) {
   switch (tipo) {
@@ -48,7 +47,7 @@ const InconsistenciasPage = () => {
     { id: 'orfao',        label: 'Órfão',        count: pending.filter(i => i.tipo === 'Órfão').length },
   ]
 
-  const handleResolve = (id: string, choice: 'vendas' | 'email') => {
+  const handleResolve = (id: string, choice: FonteContato) => {
     dispatch({ type: 'INCONSISTENCIA_RESOLVE', payload: { id, choice } })
     toast.success('Inconsistência resolvida')
     if (selectedId === id) setSelectedId(null)
@@ -166,7 +165,7 @@ const InconsistenciasPage = () => {
                     </td>
                     <td className='px-4 py-3.5'>
                       <span className='text-[10px] px-2 py-0.5 rounded border border-border bg-muted text-muted-foreground'>
-                        {row.fonte}
+                        {FONTE_LABELS[row.fonte]}
                       </span>
                     </td>
                     <td className='px-4 py-3.5'>
@@ -180,12 +179,11 @@ const InconsistenciasPage = () => {
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align='end' onClick={(e) => e.stopPropagation()}>
-                          <DropdownMenuItem onClick={() => handleResolve(row.id, 'vendas')}>
-                            Resolver (Vendas)
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleResolve(row.id, 'email')}>
-                            Resolver (E-mail)
-                          </DropdownMenuItem>
+                          {row.sources.map((fonte) => (
+                            <DropdownMenuItem key={fonte} onClick={() => handleResolve(row.id, fonte)}>
+                              Resolver ({FONTE_LABELS[fonte]})
+                            </DropdownMenuItem>
+                          ))}
                           <DropdownMenuItem onClick={() => handleMarkOrphan(row.id)}>
                             Marcar órfão
                           </DropdownMenuItem>
@@ -230,7 +228,7 @@ const InconsistenciasPage = () => {
               <span className='text-[9px] uppercase tracking-[0.12em] text-muted-foreground'>Informações</span>
               {[
                 { key: 'Telefone',        val: selected.conflict ? 'Conflito detectado' : selected.phone },
-                { key: 'Fontes',          val: selected.sources.join(', ') },
+                { key: 'Fontes',          val: selected.sources.map((s) => FONTE_LABELS[s]).join(', ') },
                 { key: 'Primeira compra', val: selected.firstPurchase },
                 { key: 'Tags atuais',     val: selected.currentTags.join(', ') || '—' },
               ].map((row) => (
@@ -248,34 +246,26 @@ const InconsistenciasPage = () => {
                   <span className='text-[9px] uppercase tracking-[0.1em] text-error font-medium'>
                     {selected.conflict.label}
                   </span>
-                  <div className='flex justify-between items-center gap-2'>
-                    <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
-                      Vendas
-                    </span>
-                    <span className='text-xs text-right'>{selected.conflict.vendas}</span>
-                  </div>
-                  <div className='flex justify-between items-center gap-2'>
-                    <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
-                      E-mail
-                    </span>
-                    <span className='text-xs text-right'>{selected.conflict.email}</span>
-                  </div>
+                  {selected.conflict.entries.map((entry) => (
+                    <div key={entry.fonte} className='flex justify-between items-center gap-2'>
+                      <span className='text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded shrink-0'>
+                        {FONTE_LABELS[entry.fonte]}
+                      </span>
+                      <span className='text-xs text-right'>{entry.value}</span>
+                    </div>
+                  ))}
                   <div className='flex gap-1.5 mt-0.5'>
-                    <Button
-                      size='sm'
-                      className='flex-1 h-7 text-[10px]'
-                      onClick={() => handleResolve(selected.id, 'vendas')}
-                    >
-                      Usar Vendas
-                    </Button>
-                    <Button
-                      size='sm'
-                      variant='outline'
-                      className='flex-1 h-7 text-[10px]'
-                      onClick={() => handleResolve(selected.id, 'email')}
-                    >
-                      Usar E-mail
-                    </Button>
+                    {selected.sources.map((fonte, idx) => (
+                      <Button
+                        key={fonte}
+                        size='sm'
+                        variant={idx === 0 ? 'default' : 'outline'}
+                        className='flex-1 h-7 text-[10px]'
+                        onClick={() => handleResolve(selected.id, fonte)}
+                      >
+                        Usar {FONTE_LABELS[fonte]}
+                      </Button>
+                    ))}
                   </div>
                 </div>
               </div>

@@ -1,5 +1,13 @@
 import { useId, useRef, useState } from 'react'
-import { UploadCloudIcon, FileIcon, XIcon, CheckCircle2Icon, Loader2Icon } from 'lucide-react'
+import {
+  UploadCloudIcon,
+  FileIcon,
+  XIcon,
+  CheckCircle2Icon,
+  Loader2Icon,
+  RotateCcwIcon,
+  AlertTriangleIcon,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -19,82 +27,65 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-
-type SourceType = 'vendas' | 'email-marketing' | 'crm-whatsapp'
-
-type Base = {
-  id: string
-  tipo: SourceType
-  label: string
-  fileName: string
-  info: string
-  loaded: true
-}
-
-type HistoryRow = {
-  id: string
-  file: string
-  tipo: string
-  date: string
-  rows: string
-  status: 'success' | 'processing' | 'error'
-}
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { toast } from 'sonner'
+import { useStore } from '@/lib/store'
+import { type FonteContato, FONTE_LABELS, type ImportacaoHistorico } from '@/lib/mock-data'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
-const SOURCE_TYPES: { value: SourceType; label: string }[] = [
-  { value: 'vendas',          label: 'Vendas' },
-  { value: 'email-marketing', label: 'Email Marketing' },
-  { value: 'crm-whatsapp',    label: 'CRM WhatsApp' },
-]
-
-const SOURCE_LABEL: Record<SourceType, string> = {
-  'vendas':          'Base de Vendas',
-  'email-marketing': 'Email Marketing',
-  'crm-whatsapp':    'CRM WhatsApp',
-}
-
-const INITIAL_BASES: Base[] = [
-  { id: '1', tipo: 'vendas',          label: 'Base de Vendas',   fileName: 'clientes_vendas_mar25.csv',   info: '2.847 contatos · 12 colunas', loaded: true },
-  { id: '2', tipo: 'email-marketing', label: 'Email Marketing',  fileName: 'mailchimp_export_032025.xlsx', info: '3.102 contatos · 9 colunas',  loaded: true },
-]
-
-const INITIAL_HISTORY: HistoryRow[] = [
-  { id: '1', file: 'clientes_vendas_mar25.csv',    tipo: 'Vendas',          date: '09/03/2026', rows: '2.847 linhas', status: 'success' },
-  { id: '2', file: 'mailchimp_export_032025.xlsx', tipo: 'Email Marketing', date: '08/03/2026', rows: '3.102 linhas', status: 'success' },
-  { id: '3', file: 'crm_whatsapp_fev25.csv',       tipo: 'CRM WhatsApp',    date: '15/02/2026', rows: '1.230 linhas', status: 'error'   },
+const SOURCE_TYPES: { value: FonteContato; label: string }[] = [
+  { value: 'vendas',   label: FONTE_LABELS.vendas   },
+  { value: 'email',    label: FONTE_LABELS.email    },
+  { value: 'whatsapp', label: FONTE_LABELS.whatsapp },
 ]
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function today() {
-  return new Date().toLocaleDateString('pt-BR')
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('pt-BR')
 }
 
-function randomRows() {
-  const n = Math.floor(Math.random() * 4000) + 500
-  return `${n.toLocaleString('pt-BR')} linhas`
-}
-
-function randomInfo(rows: string) {
-  const cols = Math.floor(Math.random() * 8) + 6
-  return `${rows.replace(' linhas', ' contatos')} · ${cols} colunas`
+function formatSize(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${(bytes / 1024).toFixed(0)} KB`
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
 const UploadPage = () => {
-  const selectId  = useId()
-  const fileRef   = useRef<HTMLInputElement>(null)
+  const selectId = useId()
+  const fileRef  = useRef<HTMLInputElement>(null)
+  const { state, dispatch } = useStore()
 
-  const [bases,        setBases]        = useState<Base[]>(INITIAL_BASES)
-  const [history,      setHistory]      = useState<HistoryRow[]>(INITIAL_HISTORY)
-  const [sourceType,   setSourceType]   = useState<string>('')
+  const [sourceType,   setSourceType]   = useState<FonteContato | ''>('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [uploading,    setUploading]    = useState(false)
   const [dragOver,     setDragOver]     = useState(false)
+  const [revertTarget, setRevertTarget] = useState<ImportacaoHistorico | null>(null)
+
+  // Derive active base cards — most recent 'ativa' per fonte
+  const activeBases = (['vendas', 'email', 'whatsapp'] as FonteContato[])
+    .map((fonte) =>
+      state.importacoes
+        .filter((i) => i.fonte === fonte && i.status === 'ativa')
+        .sort((a, b) => new Date(b.importedAt).getTime() - new Date(a.importedAt).getTime())[0] ?? null,
+    )
+    .filter(Boolean) as ImportacaoHistorico[]
+
+  // History sorted most recent first
+  const sortedHistory = [...state.importacoes].sort(
+    (a, b) => new Date(b.importedAt).getTime() - new Date(a.importedAt).getTime(),
+  )
 
   // ── File selection ───────────────────────────────────────────────────────────
 
@@ -121,59 +112,41 @@ const UploadPage = () => {
     if (!selectedFile || !sourceType) return
     setUploading(true)
 
-    const rowsStr = randomRows()
-    const newHistoryId = Date.now().toString()
-
-    // Add processing row immediately
-    const processingRow: HistoryRow = {
-      id: newHistoryId,
-      file: selectedFile.name,
-      tipo: SOURCE_TYPES.find((s) => s.value === sourceType)?.label ?? sourceType,
-      date: today(),
-      rows: rowsStr,
-      status: 'processing',
+    const newId = `imp-${Date.now()}`
+    const newImportacao: ImportacaoHistorico = {
+      id: newId,
+      fileName: selectedFile.name,
+      fileSize: selectedFile.size,
+      fonte: sourceType,
+      importedAt: new Date().toISOString(),
+      contatosIds: [],
+      status: 'processando',
     }
-    setHistory((prev) => [processingRow, ...prev])
 
-    // Simulate processing delay
+    dispatch({ type: 'IMPORTACAO_ADD', payload: newImportacao })
+
     await new Promise((r) => setTimeout(r, 1800))
 
-    // Update history row to success
-    setHistory((prev) =>
-      prev.map((row) =>
-        row.id === newHistoryId ? { ...row, status: 'success' } : row
-      )
-    )
+    dispatch({ type: 'IMPORTACAO_UPDATE_STATUS', payload: { id: newId, status: 'ativa' } })
+    toast.success(`Base ${FONTE_LABELS[sourceType]} carregada com sucesso`)
 
-    // Upsert base card
-    const tipo = sourceType as SourceType
-    const info = randomInfo(rowsStr)
-    setBases((prev) => {
-      const exists = prev.find((b) => b.tipo === tipo)
-      if (exists) {
-        return prev.map((b) =>
-          b.tipo === tipo
-            ? { ...b, fileName: selectedFile.name, info }
-            : b
-        )
-      }
-      return [
-        ...prev,
-        {
-          id: newHistoryId,
-          tipo,
-          label: SOURCE_LABEL[tipo],
-          fileName: selectedFile.name,
-          info,
-          loaded: true,
-        },
-      ]
-    })
-
-    // Reset form
     clearFile()
     setSourceType('')
     setUploading(false)
+  }
+
+  // ── Revert ──────────────────────────────────────────────────────────────────
+
+  function confirmReverter() {
+    if (!revertTarget) return
+    const count = revertTarget.contatosIds.length
+    dispatch({ type: 'IMPORTACAO_REVERTER', payload: revertTarget.id })
+    toast.success(
+      count > 0
+        ? `Importação revertida. ${count} contato${count !== 1 ? 's' : ''} marcado${count !== 1 ? 's' : ''} como órfão.`
+        : 'Importação revertida com sucesso.',
+    )
+    setRevertTarget(null)
   }
 
   const canUpload = !!selectedFile && !!sourceType && !uploading
@@ -183,7 +156,7 @@ const UploadPage = () => {
   return (
     <div className='flex flex-col gap-8 max-w-4xl'>
 
-      {/* ── Carregar nova base ────────────────────────────────────────────────── */}
+      {/* ── Carregar nova base ─────────────────────────────────────────────────── */}
       <section>
         <div className='flex items-baseline gap-3 mb-5'>
           <h2 className='font-serif text-[22px] font-normal tracking-tight'>Carregar nova base</h2>
@@ -196,7 +169,7 @@ const UploadPage = () => {
             <Label htmlFor={selectId} className='text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-normal'>
               Tipo de fonte <span className='text-destructive'>*</span>
             </Label>
-            <Select value={sourceType} onValueChange={setSourceType}>
+            <Select value={sourceType} onValueChange={(v) => setSourceType(v as FonteContato)}>
               <SelectTrigger id={selectId} className='w-full h-[88px] rounded-lg text-sm'>
                 <SelectValue placeholder='Selecionar fonte…' />
               </SelectTrigger>
@@ -241,9 +214,7 @@ const UploadPage = () => {
                   <FileIcon className='size-5 text-muted-foreground/60 flex-shrink-0' />
                   <div className='flex-1 min-w-0'>
                     <p className='text-sm font-medium truncate'>{selectedFile.name}</p>
-                    <p className='text-[11px] text-muted-foreground font-light'>
-                      {(selectedFile.size / 1024).toFixed(0)} KB
-                    </p>
+                    <p className='text-[11px] text-muted-foreground font-light'>{formatSize(selectedFile.size)}</p>
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); clearFile() }}
@@ -286,26 +257,40 @@ const UploadPage = () => {
 
       <Separator />
 
-      {/* ── Bases carregadas ──────────────────────────────────────────────────── */}
+      {/* ── Bases carregadas ───────────────────────────────────────────────────── */}
       <section>
         <div className='flex items-baseline gap-3 mb-5'>
           <h2 className='font-serif text-[22px] font-normal tracking-tight'>Bases carregadas</h2>
-          <span className='text-xs text-muted-foreground font-light'>{bases.length} fonte{bases.length !== 1 ? 's' : ''} ativa{bases.length !== 1 ? 's' : ''}</span>
+          <span className='text-xs text-muted-foreground font-light'>
+            {activeBases.length} fonte{activeBases.length !== 1 ? 's' : ''} ativa{activeBases.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
         <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {bases.map((base) => (
+          {activeBases.map((imp) => (
             <div
-              key={base.id}
-              className='relative rounded-lg border border-border bg-card px-5 py-5 flex flex-col gap-3 hover:bg-card/60 transition-all cursor-pointer'
+              key={imp.id}
+              className='relative rounded-lg border border-border bg-card px-5 py-5 flex flex-col gap-3'
             >
               <span className='absolute top-3.5 right-3.5 size-1.5 rounded-full bg-success' />
-              <span className='text-[9px] uppercase tracking-[0.14em] text-muted-foreground'>{base.label}</span>
+              <span className='text-[9px] uppercase tracking-[0.14em] text-muted-foreground'>
+                {FONTE_LABELS[imp.fonte]}
+              </span>
               <FileIcon className='size-6 text-muted-foreground/40' />
               <div>
-                <p className='text-sm font-medium leading-none mb-1 truncate'>{base.fileName}</p>
-                <p className='text-[11px] text-muted-foreground font-light'>{base.info}</p>
+                <p className='text-sm font-medium leading-none mb-1 truncate'>{imp.fileName}</p>
+                <p className='text-[11px] text-muted-foreground font-light'>
+                  {imp.contatosIds.length > 0 ? `${imp.contatosIds.length.toLocaleString('pt-BR')} contatos · ` : ''}
+                  {formatSize(imp.fileSize)}
+                </p>
               </div>
+              <button
+                onClick={() => setRevertTarget(imp)}
+                className='flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-destructive transition-colors mt-auto w-fit'
+              >
+                <RotateCcwIcon className='size-3' />
+                Reverter importação
+              </button>
             </div>
           ))}
 
@@ -322,59 +307,118 @@ const UploadPage = () => {
 
       <Separator />
 
-      {/* ── Histórico de uploads ──────────────────────────────────────────────── */}
+      {/* ── Histórico de importações ──────────────────────────────────────────── */}
       <section>
-        <h2 className='font-serif text-[22px] font-normal tracking-tight mb-5'>Histórico de uploads</h2>
+        <h2 className='font-serif text-[22px] font-normal tracking-tight mb-5'>Histórico de importações</h2>
 
         <div className='rounded-lg border border-border overflow-hidden'>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className='pl-4 h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal'>Arquivo</TableHead>
-                <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal hidden sm:table-cell'>Tipo</TableHead>
-                <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal hidden md:table-cell'>Data</TableHead>
-                <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal hidden md:table-cell'>Linhas</TableHead>
-                <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal'>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {history.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell className='pl-4 text-sm font-medium'>
-                    <div className='flex items-center gap-2'>
-                      <FileIcon className='size-3.5 text-muted-foreground/50 flex-shrink-0' />
-                      <span className='truncate max-w-[160px] sm:max-w-none'>{row.file}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>{row.tipo}</TableCell>
-                  <TableCell className='text-sm text-muted-foreground hidden md:table-cell'>{row.date}</TableCell>
-                  <TableCell className='text-sm text-muted-foreground hidden md:table-cell'>{row.rows}</TableCell>
-                  <TableCell>
-                    {row.status === 'success' && (
-                      <Badge variant='outline' className='badge-success rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5'>
-                        <CheckCircle2Icon className='size-3' />
-                        Sucesso
-                      </Badge>
-                    )}
-                    {row.status === 'processing' && (
-                      <Badge variant='outline' className='badge-info rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5'>
-                        <Loader2Icon className='size-3 animate-spin' />
-                        Processando
-                      </Badge>
-                    )}
-                    {row.status === 'error' && (
-                      <Badge variant='outline' className='badge-error rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5'>
-                        <span className='size-1.5 rounded-full bg-current inline-block' />
-                        Erro de formato
-                      </Badge>
-                    )}
-                  </TableCell>
+          <div className='overflow-x-auto'>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className='pl-4 h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal'>Arquivo</TableHead>
+                  <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal hidden sm:table-cell'>Tipo</TableHead>
+                  <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal hidden md:table-cell'>Data</TableHead>
+                  <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal hidden md:table-cell'>Contatos</TableHead>
+                  <TableHead className='h-11 text-[10px] uppercase tracking-[0.08em] text-muted-foreground font-normal'>Status</TableHead>
+                  <TableHead className='h-11 w-10' />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {sortedHistory.map((imp) => (
+                  <TableRow key={imp.id}>
+                    <TableCell className='pl-4 text-sm font-medium'>
+                      <div className='flex items-center gap-2'>
+                        <FileIcon className='size-3.5 text-muted-foreground/50 flex-shrink-0' />
+                        <span className='truncate max-w-[140px] sm:max-w-none'>{imp.fileName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className='text-sm text-muted-foreground hidden sm:table-cell'>
+                      {FONTE_LABELS[imp.fonte]}
+                    </TableCell>
+                    <TableCell className='text-sm text-muted-foreground hidden md:table-cell'>
+                      {formatDate(imp.importedAt)}
+                    </TableCell>
+                    <TableCell className='text-sm text-muted-foreground hidden md:table-cell'>
+                      {imp.contatosIds.length > 0 ? imp.contatosIds.length.toLocaleString('pt-BR') : '—'}
+                    </TableCell>
+                    <TableCell>
+                      {imp.status === 'ativa' && (
+                        <Badge variant='outline' className='badge-success rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 whitespace-nowrap'>
+                          <CheckCircle2Icon className='size-3' />
+                          Ativa
+                        </Badge>
+                      )}
+                      {imp.status === 'processando' && (
+                        <Badge variant='outline' className='badge-info rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 whitespace-nowrap'>
+                          <Loader2Icon className='size-3 animate-spin' />
+                          Processando
+                        </Badge>
+                      )}
+                      {imp.status === 'erro' && (
+                        <Badge variant='outline' className='badge-error rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 whitespace-nowrap'>
+                          <span className='size-1.5 rounded-full bg-current inline-block' />
+                          Erro
+                        </Badge>
+                      )}
+                      {imp.status === 'revertida' && (
+                        <Badge variant='outline' className='rounded-full px-2.5 py-0.5 text-[11px] font-normal gap-1.5 whitespace-nowrap text-muted-foreground border-border'>
+                          <RotateCcwIcon className='size-3' />
+                          Revertida
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className='pr-3 text-right'>
+                      {imp.status === 'ativa' && (
+                        <button
+                          onClick={() => setRevertTarget(imp)}
+                          className='text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-destructive/10'
+                          title='Reverter importação'
+                        >
+                          <RotateCcwIcon className='size-3.5' />
+                        </button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </section>
+
+      {/* ── AlertDialog: Confirmar reverter ──────────────────────────────────── */}
+      <AlertDialog open={!!revertTarget} onOpenChange={(open) => { if (!open) setRevertTarget(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className='flex items-center gap-2'>
+              <AlertTriangleIcon className='size-4 text-destructive' />
+              Reverter importação
+            </AlertDialogTitle>
+            <AlertDialogDescription className='space-y-1'>
+              {revertTarget && (
+                <>
+                  Isso reverterá <strong>{revertTarget.fileName}</strong> ({FONTE_LABELS[revertTarget.fonte]}).
+                  {revertTarget.contatosIds.length > 0 && (
+                    <> <strong>{revertTarget.contatosIds.length} contato{revertTarget.contatosIds.length !== 1 ? 's' : ''}</strong> exclusivo{revertTarget.contatosIds.length !== 1 ? 's' : ''} desta importação será marcado como <strong>órfão</strong>.</>
+                  )}{' '}
+                  Esta ação não pode ser desfeita.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmReverter}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              Reverter importação
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   )
 }
