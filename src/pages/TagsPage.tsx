@@ -20,19 +20,52 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { TagFormDialog } from '@/components/tag-form-dialog'
-import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 import type { Tag } from '@/lib/mock-data'
+import { trpc } from '@/lib/trpc/react'
 
 const TagsPage = () => {
-  const { state, dispatch } = useStore()
   const [search, setSearch] = useState('')
-
   const [formOpen, setFormOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<Tag | undefined>(undefined)
   const [deleteId, setDeleteId] = useState<string | null>(null)
 
-  const filteredTags = state.tags.filter((tag) =>
+  const utils = trpc.useUtils()
+  const tagsQuery = trpc.tags.list.useQuery()
+
+  const createTag = trpc.tags.create.useMutation({
+    onSuccess: async () => {
+      await utils.tags.list.invalidate()
+      toast.success('Tag criada')
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+
+  const updateTag = trpc.tags.update.useMutation({
+    onSuccess: async () => {
+      await utils.tags.list.invalidate()
+      toast.success('Tag atualizada')
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+
+  const deleteTag = trpc.tags.delete.useMutation({
+    onSuccess: async () => {
+      await utils.tags.list.invalidate()
+      toast.success('Tag excluída')
+      setDeleteId(null)
+    },
+    onError: (error) => {
+      toast.error(error.message)
+    },
+  })
+
+  const tags = tagsQuery.data?.tags ?? []
+  const filteredTags = tags.filter((tag) =>
     tag.name.toLowerCase().includes(search.toLowerCase()),
   )
 
@@ -47,38 +80,39 @@ const TagsPage = () => {
   }
 
   function handleSave(data: Partial<Tag>) {
-    if (editTarget) {
-      dispatch({ type: 'TAG_UPDATE', payload: { id: editTarget.id, data } })
-      toast.success('Tag atualizada')
-    } else {
-      const newTag: Tag = {
-        id: String(Date.now()),
-        name: data.name ?? 'nova-tag',
-        description: data.description ?? '',
-        color: data.color ?? '',
-        count: 0,
-      }
-      dispatch({ type: 'TAG_CREATE', payload: newTag })
-      toast.success('Tag criada')
+    if (!data.name || !data.color) {
+      toast.error('Nome e cor são obrigatórios.')
+      return
     }
+
+    if (editTarget) {
+      updateTag.mutate({
+        id: editTarget.id,
+        name: data.name,
+        description: data.description ?? '',
+        color: data.color,
+      })
+      return
+    }
+
+    createTag.mutate({
+      name: data.name,
+      description: data.description ?? '',
+      color: data.color,
+    })
   }
 
   function handleDeleteConfirm() {
     if (deleteId) {
-      dispatch({ type: 'TAG_DELETE', payload: deleteId })
-      toast.success('Tag excluída')
-      setDeleteId(null)
+      deleteTag.mutate({ id: deleteId })
     }
   }
 
-  // Dynamic count from store
-  function tagCount(tagName: string) {
-    return state.contatos.filter((c) => c.tags.includes(tagName)).length
-  }
+  const isMutating =
+    createTag.isPending || updateTag.isPending || deleteTag.isPending
 
   return (
     <div className='flex flex-col gap-6'>
-      {/* Header */}
       <div className='flex items-start justify-between'>
         <div>
           <h2 className='font-serif text-[22px] font-normal tracking-tight'>Tags</h2>
@@ -86,12 +120,17 @@ const TagsPage = () => {
             Gerencie as tags de segmentação dos contatos
           </span>
         </div>
-        <Button size='sm' onClick={handleNew}>
+        <Button size='sm' onClick={handleNew} disabled={isMutating}>
           <PlusIcon className='size-4 mr-1.5' /> Nova tag
         </Button>
       </div>
 
-      {/* Search */}
+      {tagsQuery.isError && (
+        <div className='rounded-lg border border-[hsl(var(--warning)/0.35)] bg-[hsl(var(--warning)/0.08)] px-4 py-3 text-sm text-foreground'>
+          Falha ao carregar as tags do backend: {tagsQuery.error.message}
+        </div>
+      )}
+
       <Input
         placeholder='Buscar tags...'
         className='max-w-xs'
@@ -99,8 +138,22 @@ const TagsPage = () => {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {/* Tag grid */}
       <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
+        {tagsQuery.isLoading &&
+          Array.from({ length: 3 }).map((_, index) => (
+            <Card
+              key={`tag-skeleton-${index}`}
+              className='px-6 py-5 flex flex-col gap-3 animate-pulse'
+            >
+              <div className='flex items-center justify-between'>
+                <div className='h-6 w-24 rounded bg-muted' />
+                <div className='h-7 w-7 rounded bg-muted' />
+              </div>
+              <div className='h-10 w-20 rounded bg-muted' />
+              <div className='h-4 w-full rounded bg-muted' />
+            </Card>
+          ))}
+
         {filteredTags.map((tag) => (
           <Card
             key={tag.id}
@@ -128,14 +181,28 @@ const TagsPage = () => {
               </DropdownMenu>
             </div>
             <span className='font-sans text-[36px] font-light tracking-[-0.03em] leading-none'>
-              {tagCount(tag.name).toLocaleString('pt-BR')}
+              {tag.count.toLocaleString('pt-BR')}
             </span>
-            <span className='text-[11px] text-muted-foreground font-light'>{tag.description}</span>
+            <span className='text-[11px] text-muted-foreground font-light'>
+              {tag.description}
+            </span>
           </Card>
         ))}
+
+        {!tagsQuery.isLoading && filteredTags.length === 0 && (
+          <Card className='px-6 py-8 flex flex-col gap-2 border-dashed sm:col-span-2 lg:col-span-3'>
+            <p className='text-sm font-medium'>
+              {search ? 'Nenhuma tag encontrada' : 'Nenhuma tag criada no backend ainda'}
+            </p>
+            <p className='text-xs text-muted-foreground font-light'>
+              {search
+                ? 'Tente outro termo de busca.'
+                : 'Use “Nova tag” para criar a primeira tag diretamente no Supabase via tRPC.'}
+            </p>
+          </Card>
+        )}
       </div>
 
-      {/* Dialogs */}
       <TagFormDialog
         open={formOpen}
         onOpenChange={setFormOpen}
@@ -155,6 +222,7 @@ const TagsPage = () => {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
+              disabled={deleteTag.isPending}
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
             >
               Excluir
