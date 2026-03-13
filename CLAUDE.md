@@ -6,30 +6,20 @@
 
 **Antes de qualquer pesquisa, alteração de código, ou decisão de arquitetura:**
 
-### 1. Consultar LightRAG (memória semântica do projeto)
-```
-mcp__lightrag__search(query: "<tópico relevante>", mode: "mix")
-```
-Use o MCP `lightrag` para recuperar contexto já indexado: decisões anteriores, padrões estabelecidos, bugs conhecidos, status de páginas.
-
-### 2. Consultar Obsidian (documentação estruturada)
+### 1. Consultar Obsidian (documentação estruturada)
 Vault: `/Users/miguelcrasto/Documents/Obsidian Vault/CDP Platform/`
 Use o MCP `obsidian-cli` ou leia os arquivos `.md` diretamente para ver:
 - Status atual de cada página
 - Decisões de arquitetura registradas
 - Histórico de mudanças
 
-### 3. Alimentar após cada alteração
-Toda mudança relevante deve ser indexada **antes do commit**:
-```
-mcp__lightrag__upsert_document(text: "<resumo da mudança + contexto>", file_source: "cdp/<arquivo>")
-```
-E o doc Obsidian correspondente deve ser atualizado com o novo status.
+### 2. Alimentar após cada alteração
+Toda mudança relevante deve ser refletida no documento Obsidian correspondente antes do commit.
 
 ### Por que isso importa
-- O LightRAG e Obsidian **substituem o contexto de janela** para decisões de projeto
+- O Obsidian **substitui o contexto de janela** para decisões de projeto
 - Não depender de memória de sessão evita regressões e contradições
-- Toda sessão começa "do zero" — o RAG é o estado persistente
+- Toda sessão começa "do zero" — a documentação do vault é o estado persistente
 
 ---
 
@@ -53,13 +43,12 @@ Toda a UI em **PT-BR**. Código e commits em inglês.
 ```
 src/
   lib/
-    mock-data.ts        # tipos + seed de todos os dados
+    domain.ts           # tipos e helpers compartilhados do domínio
     store.tsx           # StoreProvider + useStore() + reducer + actions
     export-utils.ts     # exportCSV() e exportExcel()
     utils.ts            # cn() helper
   components/
     ui/                 # shadcn/ui components (manual)
-    shadcn-studio/blocks/datatable-transaction.tsx
     contact-edit-dialog.tsx
     tag-form-dialog.tsx
     user-form-dialog.tsx
@@ -170,7 +159,7 @@ toast.error('Mensagem de erro')
 
 ## Atualização v0.6 (2026-03-10)
 
-### Novos tipos em `mock-data.ts`
+### Novos tipos em `domain.ts`
 ```typescript
 export type FonteContato = 'vendas' | 'email' | 'whatsapp'
 export const FONTE_LABELS: Record<FonteContato, string> = {
@@ -255,12 +244,22 @@ Cada rota tem UMA função. Violações corrigidas nesta versão:
 
 **ContatosPage + ExportarPage**:
 - `{c.source}` → `{FONTE_LABELS[c.source as FonteContato] ?? c.source}`
-- Importam `FONTE_LABELS` e `FonteContato` de `@/lib/mock-data`
+- Importam `FONTE_LABELS` e `FonteContato` de `@/lib/domain`
+
+---
+
+## Atualização v0.8 (2026-03-13)
+
+### Remoção de mock data
+
+- `src/lib/mock-data.ts` foi removido do projeto.
+- `src/lib/domain.ts` agora concentra apenas tipos, labels e helpers puros de domínio.
+- `src/lib/store.tsx` inicializa vazio por padrão; não há mais seed local de contatos, tags, usuários, perfis, importações ou inconsistências.
+- Blocos `shadcn-studio` não utilizados com dados fictícios foram removidos.
+- Qualquer página ainda baseada em reducer deve partir de estado vazio ou de dados reais do backend.
 
 ### Documentação externa
 - **Obsidian**: `/Users/miguelcrasto/Documents/Obsidian Vault/CDP Platform/` (10 docs)
-- **LightRAG**: https://mcpmacmiguel.ngrok.app (indexado via MCP)
-
 ---
 
 ## Atualização v0.3 (2026-03-09)

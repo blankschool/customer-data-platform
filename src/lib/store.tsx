@@ -1,18 +1,13 @@
 import { createContext, useContext, useReducer, type ReactNode } from 'react'
 import {
-  contatosData,
-  tagsData,
-  usuariosData,
-  perfisData,
-  importacaoHistoricoData,
   type Contato,
   type Tag,
   type Usuario,
   type Perfil,
   type ImportacaoHistorico,
   type FonteContato,
-} from './mock-data'
-import { inconsistenciasFullData, type Inconsistencia } from './mock-data'
+  type Inconsistencia,
+} from './domain'
 
 // ── State ──────────────────────────────────────────────────────────────────────
 
@@ -25,13 +20,13 @@ export type StoreState = {
   importacoes: ImportacaoHistorico[]
 }
 
-const initialState: StoreState = {
-  contatos: [...contatosData],
-  inconsistencias: [...inconsistenciasFullData],
-  tags: [...tagsData],
-  usuarios: [...usuariosData],
-  perfis: [...perfisData],
-  importacoes: [...importacaoHistoricoData],
+export const initialState: StoreState = {
+  contatos: [],
+  inconsistencias: [],
+  tags: [],
+  usuarios: [],
+  perfis: [],
+  importacoes: [],
 }
 
 // ── Actions ────────────────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ import {
 import { cn } from '@/lib/utils'
 import { exportCSV, exportExcel } from '@/lib/export-utils'
 import { useStore } from '@/lib/store'
-import { FONTE_LABELS, type FonteContato } from '@/lib/mock-data'
+import { FONTE_LABELS, type FonteContato } from '@/lib/domain'
 import { toast } from 'sonner'
 
 type Format = 'csv' | 'excel'
@@ -48,7 +48,7 @@ const ExportarPage = () => {
       if (selectedFormat === 'csv') {
         exportCSV(contatos)
       } else {
-        exportExcel(contatos)
+        await exportExcel(contatos)
       }
       toast.success(`Exportação ${selectedFormat.toUpperCase()} concluída`)
     } catch {

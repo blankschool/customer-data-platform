@@ -15,7 +15,12 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { MoreHorizontalIcon, XIcon } from 'lucide-react'
-import { healthMetrics, FONTE_LABELS, type FonteContato, type TipoInconsistencia } from '@/lib/mock-data'
+import {
+  buildHealthMetrics,
+  FONTE_LABELS,
+  type FonteContato,
+  type TipoInconsistencia,
+} from '@/lib/domain'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
 
@@ -45,6 +50,11 @@ const InconsistenciasPage = () => {
   const pending = state.inconsistencias.filter((i) => !i.resolved)
   const filtered = pending.filter((i) => filterMatch(i.tipo, activeFilter))
   const selected = selectedId ? state.inconsistencias.find((i) => i.id === selectedId) : null
+  const healthMetrics = buildHealthMetrics(
+    state.contatos,
+    state.inconsistencias,
+    state.importacoes,
+  )
 
   const pills = [
     { id: 'all',          label: 'Todos',        count: pending.length },

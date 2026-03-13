@@ -42,7 +42,6 @@ export const routes: RouteConfig[] = [
     group: 'base',
     groupLabel: 'Base',
     breadcrumbParent: 'Base',
-    badge: 47,
   },
   {
     path: '/contatos',

@@ -3,7 +3,7 @@
 ## Fontes lidas antes do plano
 
 - Vault Obsidian `CDP Platform/00-10`: visão geral, arquitetura, modelo de dados, store, rotas, changelog e estado de implementação.
-- Código local: `src/lib/mock-data.ts` e `src/lib/store.tsx`.
+- Código local: `src/lib/domain.ts` e `src/lib/store.tsx`.
 - Context7: `@supabase/supabase-js`, `supabase/cli` e exemplos de Auth + `profiles` + RLS.
 - Composio: toolkit `supabase` disponível, mas ainda sem conexão ativa.
 - BMAD: síntese dos papéis PM, Analyst, Architect, Dev, QA e UX.
@@ -55,7 +55,7 @@ A decisão correta é transformar o Supabase no backend primário do produto, n�
 - Fase 1: schema + client + queries + RPC
 - Fase 2: leitura real do workspace
 - Fase 3: mutações página por página
-- Fase 4: desligar `mock-data`
+- Fase 4: remover qualquer fallback local restante
 
 ### Quinn (QA)
 
@@ -166,7 +166,7 @@ Essas RPCs encapsulam regras que hoje vivem no reducer.
 
 ### Fase 4 — Corte definitivo
 
-- Remover `mock-data.ts` como fonte de verdade
+- Remover qualquer seed/fallback local como fonte de verdade
 - Transformar `store.tsx` em cache local/estado de UI, não banco em memória
 - Adicionar testes de integração e smoke E2E
 
@@ -199,4 +199,4 @@ supabase gen types --linked > src/lib/supabase/database.types.ts
 - Um workspace inicial criado
 - Contatos/tags/importações/inconsistências persistidos no banco
 - RLS validado para `Admin`, `Editor` e `Viewer`
-- `mock-data.ts` fora do caminho crítico
+- `domain.ts` apenas com tipos/helpers e sem dados fictícios

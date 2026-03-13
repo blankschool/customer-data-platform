@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Tag } from '@/lib/mock-data'
+import type { Tag } from '@/lib/domain'
 
 const colorOptions = [
   {

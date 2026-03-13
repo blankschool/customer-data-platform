@@ -40,7 +40,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useStore } from '@/lib/store'
-import { type FonteContato, FONTE_LABELS, type ImportacaoHistorico } from '@/lib/mock-data'
+import { type FonteContato, FONTE_LABELS, type ImportacaoHistorico } from '@/lib/domain'
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -296,6 +296,12 @@ const UploadPage = () => {
           ))}
 
         </div>
+
+        {activeBases.length === 0 && (
+          <div className='rounded-lg border border-dashed border-border bg-card px-5 py-8 text-center text-sm text-muted-foreground'>
+            Nenhuma base ativa ainda. Faça o primeiro upload para iniciar a ingestão real.
+          </div>
+        )}
       </section>
 
       <Separator />
@@ -374,6 +380,13 @@ const UploadPage = () => {
                     </TableCell>
                   </TableRow>
                 ))}
+                {sortedHistory.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className='py-8 text-center text-sm text-muted-foreground'>
+                      Nenhuma importação registrada.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>

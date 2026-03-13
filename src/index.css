@@ -151,6 +151,16 @@
     font-family: 'DM Sans', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
+  [data-radix-popper-content-wrapper] {
+    z-index: 80 !important;
+    pointer-events: auto !important;
+    isolation: isolate;
+  }
+
+  [data-radix-popper-content-wrapper] > * {
+    pointer-events: auto;
+  }
 }
 
 @layer utilities {

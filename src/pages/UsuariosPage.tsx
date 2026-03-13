@@ -30,7 +30,7 @@ import {
 import { UserFormDialog } from '@/components/user-form-dialog'
 import { useStore } from '@/lib/store'
 import { toast } from 'sonner'
-import type { Usuario } from '@/lib/mock-data'
+import type { Usuario } from '@/lib/domain'
 
 function formatLastAccess(isoDate: string): string {
   const date = new Date(isoDate)
@@ -199,6 +199,12 @@ const UsuariosPage = () => {
           </TableBody>
         </Table>
       </div>
+
+      {state.usuarios.length === 0 && (
+        <div className='rounded-lg border border-dashed border-border bg-card px-5 py-8 text-center text-sm text-muted-foreground'>
+          Nenhum usuário carregado nesta camada local. Use os fluxos reais de convite para popular o time.
+        </div>
+      )}
 
       {/* Dialogs */}
       <UserFormDialog

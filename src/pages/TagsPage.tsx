@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { TagFormDialog } from '@/components/tag-form-dialog'
 import { toast } from 'sonner'
-import type { Tag } from '@/lib/mock-data'
+import type { Tag } from '@/lib/domain'
 import { trpc } from '@/lib/trpc/react'
 
 const TagsPage = () => {

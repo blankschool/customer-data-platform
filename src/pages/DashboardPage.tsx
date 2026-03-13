@@ -8,7 +8,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { healthMetrics, FONTE_LABELS, type FonteContato } from '@/lib/mock-data'
+import { buildHealthMetrics, FONTE_LABELS, type FonteContato } from '@/lib/domain'
 import { useStore } from '@/lib/store'
 import { trpc } from '@/lib/trpc/react'
 
@@ -39,6 +39,11 @@ const DashboardPage = () => {
 
   const backendSummary = dashboardSummary.data
   const backendReady = backendSummary?.status === 'ready'
+  const healthMetrics = buildHealthMetrics(
+    state.contatos,
+    state.inconsistencias,
+    state.importacoes,
+  )
 
   const activeBaseCards: DashboardBaseCard[] = backendReady
     ? backendSummary.dashboard.activeBases.map((item) => ({

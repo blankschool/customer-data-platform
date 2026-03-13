@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/table'
 import { ContactEditDialog } from '@/components/contact-edit-dialog'
 import { toast } from 'sonner'
-import { FONTE_LABELS, type FonteContato, type Contato } from '@/lib/mock-data'
+import { FONTE_LABELS, type FonteContato, type Contato } from '@/lib/domain'
 import { trpc } from '@/lib/trpc/react'
 
 const PAGE_SIZE = 10

@@ -13,12 +13,15 @@ import { Separator } from '@/components/ui/separator'
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import ProfileDropdown from '@/components/shadcn-studio/blocks/dropdown-profile'
 import { ThemeSwitcher } from '@/components/kibo-ui/theme-switcher'
+import { useAuth, useAuthIdentity } from '@/lib/auth/auth'
 import AppSidebar from '@/components/app-sidebar'
 import { routes } from '@/lib/routes'
 
 export default function AppLayout() {
   const { pathname } = useLocation()
   const currentRoute = routes.find((r) => r.path === pathname)
+  const { signOut } = useAuth()
+  const identity = useAuthIdentity()
 
   return (
     <SidebarProvider className='h-screen overflow-hidden'>
@@ -71,11 +74,16 @@ export default function AppLayout() {
             <ThemeSwitcher defaultValue='system' />
             <Separator orientation='vertical' className='h-4' />
             <ProfileDropdown
+              name={identity.name}
+              email={identity.email}
+              avatarUrl={identity.avatarUrl}
+              avatarFallback={identity.avatarFallback}
+              onSignOut={signOut}
               trigger={
                 <button className='rounded-md'>
                   <Avatar className='size-8 rounded-md'>
-                    <AvatarImage src='https://cdn.shadcnstudio.com/ss-assets/avatar/avatar-1.png' />
-                    <AvatarFallback>OP</AvatarFallback>
+                    <AvatarImage src={identity.avatarUrl} />
+                    <AvatarFallback>{identity.avatarFallback}</AvatarFallback>
                   </Avatar>
                 </button>
               }

@@ -89,6 +89,12 @@ const PerfisPage = () => {
           )
         })}
       </div>
+
+      {state.perfis.length === 0 && (
+        <Card className='border-dashed px-6 py-8 text-center text-sm text-muted-foreground'>
+          Nenhum perfil carregado localmente. Esta tela deve ser alimentada pelo backend/RLS.
+        </Card>
+      )}
     </div>
   )
 }

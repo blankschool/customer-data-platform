@@ -1,5 +1,4 @@
-import type { Contato } from './mock-data'
-import * as XLSX from 'xlsx'
+import type { Contato } from './domain'
 
 /**
  * Exporta contatos como arquivo CSV (UTF-8 com BOM para acentos no Excel)
@@ -26,7 +25,11 @@ export function exportCSV(contatos: Contato[], filename = 'contatos_cdp.csv') {
 /**
  * Exporta contatos como arquivo Excel (.xlsx) usando SheetJS
  */
-export function exportExcel(contatos: Contato[], filename = 'contatos_cdp.xlsx') {
+export async function exportExcel(
+  contatos: Contato[],
+  filename = 'contatos_cdp.xlsx',
+) {
+  const XLSX = await import('xlsx')
   const data = contatos.map((c) => ({
     Nome: c.name,
     Email: c.email,

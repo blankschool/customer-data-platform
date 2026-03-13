@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { Usuario } from '@/lib/mock-data'
+import type { Usuario } from '@/lib/domain'
 
 type Props = {
   open: boolean
